@@ -50,6 +50,12 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.SIGNING_KEY }}
+          passphrase: ${{ secrets.SIGNING_PASSPHRASE }}
+
       - name: Install trusted-signing-cli (windows only)
         if: matrix.platform == 'windows-latest'
         run: cargo install trusted-signing-cli
