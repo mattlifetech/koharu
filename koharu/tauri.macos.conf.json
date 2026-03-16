@@ -5,5 +5,10 @@
     "features": [
       "metal"
     ]
+  },
+  "bundle": {
+    "macOS": {
+      "signingIdentity": "-"
+    }
   }
 }
