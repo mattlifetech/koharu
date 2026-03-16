@@ -281,39 +281,72 @@ export const useDocumentMutations = () => {
   }, [clearMaskSync, queryClient, refreshDocuments])
 
   const applyStyleToAllDocuments = useCallback(async () => {
-    const { totalPages, renderEffect, renderTextAlign } =
+    const { totalPages, renderEffect, renderTextAlign, renderStroke } =
       useEditorUiStore.getState()
     const { fontFamily } = usePreferencesStore.getState()
+    const { startOperation, finishOperation } = useOperationStore.getState()
+
     if (totalPages === 0) return
 
-    for (let i = 0; i < totalPages; i++) {
-      const queryKey = queryKeys.documents.current(i)
-      const doc = queryClient.getQueryData<any>(queryKey)
-      if (!doc?.textBlocks) continue
+    startOperation({
+      type: 'process-all',
+      cancellable: true,
+      current: 0,
+      total: totalPages,
+    })
 
-      const nextBlocks = doc.textBlocks.map((block: any) => {
-        const style = block.style || {}
-        return {
-          ...block,
-          style: {
-            ...style,
-            effect: renderEffect,
-            textAlign: renderTextAlign,
-            fontFamilies: [
-              fontFamily,
-              ...(style.fontFamilies || []).filter(
-                (f: string) => f !== fontFamily,
-              ),
-            ].filter(Boolean),
-          },
-        }
-      })
+    try {
+      for (let i = 0; i < totalPages; i++) {
+        useOperationStore.setState((state) => ({
+          operation: state.operation
+            ? { ...state.operation, current: i }
+            : undefined,
+        }))
 
-      queryClient.setQueryData(queryKey, {
-        ...doc,
-        textBlocks: nextBlocks,
-      })
-      await enqueueTextBlockSync(i, nextBlocks)
+        const queryKey = queryKeys.documents.current(i)
+        const doc = queryClient.getQueryData<any>(queryKey)
+        if (!doc?.textBlocks) continue
+
+        const nextBlocks = doc.textBlocks.map((block: any) => {
+          const style = block.style || {}
+          return {
+            ...block,
+            style: {
+              ...style,
+              effect: renderEffect,
+              textAlign: renderTextAlign,
+              fontFamilies: [
+                fontFamily,
+                ...(style.fontFamilies || []).filter(
+                  (f: string) => f !== fontFamily,
+                ),
+              ].filter(Boolean),
+            },
+          }
+        })
+
+        queryClient.setQueryData(queryKey, {
+          ...doc,
+          textBlocks: nextBlocks,
+        })
+
+        await enqueueTextBlockSync(i, nextBlocks)
+        await flushTextBlockSync()
+
+        // Trigger individual render for this page
+        await api.render(i, {
+          shaderEffect: renderEffect,
+          shaderStroke: renderStroke,
+          fontFamily,
+        })
+        await invalidateCurrentDocument(queryClient, i)
+        await invalidateThumbnailAtIndex(queryClient, i)
+      }
+      playDingDing()
+    } catch (error) {
+      console.error('Failed to apply styles to all documents:', error)
+    } finally {
+      finishOperation()
     }
   }, [queryClient])
 

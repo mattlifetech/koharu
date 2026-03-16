@@ -13,7 +13,7 @@ Under the hood, Koharu uses [candle](https://github.com/huggingface/candle) for 
 
 ---
 
-![screenshot](assets/koharu-screenshot-en.png)
+![screenshot](docs/koharugui.webp)
 
 > [!NOTE]
 > For help and support, please join our [Discord server](https://discord.gg/mHvHkxGnUY).
@@ -28,6 +28,18 @@ Under the hood, Koharu uses [candle](https://github.com/huggingface/candle) for 
 - MCP server for AI agents
 
 ## Usage
+
+### Toolbars
+
+- **Left Toolbar**:
+  - **Dustbin Icon**: Clear the current file list.
+- **Middle Vertical Toolbar**:
+  - **Run this image**: Process the currently selected image.
+  - **Run all (all images)**: Process all images in the list sequentially.
+  - **Apply style to all slides**: Render all slides using the saved font, text effects, and alignment settings.
+  - **Run all to CBZ**: Process all images and package the results into a single compressed CBZ file.
+- **Right Toolbar**:
+  - **Auto Load**: Automatically saves and loads your preferred font, text effects, alignment, LLM model, and language settings.
 
 ### Hot keys
 

@@ -8,7 +8,7 @@
   },
   "bundle": {
     "macOS": {
-      "signingIdentity": "-"
+      "signingIdentity": "Developer ID Application"
     }
   }
 }
