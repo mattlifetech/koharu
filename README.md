@@ -39,7 +39,7 @@ Under the hood, Koharu uses [candle](https://github.com/huggingface/candle) for 
   - **Apply style to all slides**: Render all slides using the saved font, text effects, and alignment settings.
   - **Run all to CBZ**: Process all images and package the results into a single compressed CBZ file.
 - **Right Toolbar**:
-  - **Auto Load**: Automatically saves and loads your preferred font, text effects, alignment, LLM model, and language settings.
+  - **Auto Load**: Saves and auto loads your preferred font, text effects, alignment, LLM model, and language settings.
 
 ### Hot keys
 
