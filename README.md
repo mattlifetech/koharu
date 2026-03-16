@@ -48,6 +48,14 @@ koharu.exe --port 9999
 
 You can input `http://localhost:9999/mcp` into the MCP server URL field in your AI agent.
 
+### OpenClaw AI Agent Skill
+
+Koharu provides a built-in [OpenClaw Skill](https://openclaw.ai/) to automate batch translation of manga archives (ZIP/CBZ). When triggered, an AI agent can automatically scan a folder, launch Koharu via MCP, apply your saved settings, process all pages, and package the translated results into new CBZ files.
+
+To use it, copy or symlink the skill directory to your OpenClaw skills folder:
+- **Skill location:** [`docs/skills/koharu-batch-translate/`](./docs/skills/koharu-batch-translate/)
+- **Instructions:** See the [SKILL.md](./docs/skills/koharu-batch-translate/SKILL.md) file for setup details and required environment variables (`KOHARU_INBOX` and `KOHARU_OUTBOX`).
+
 ### Headless Mode
 
 Koharu can be run in headless mode via command line.
