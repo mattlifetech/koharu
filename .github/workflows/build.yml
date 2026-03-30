@@ -4,6 +4,7 @@ on:
   push:
     branches: ['openclaw-mcp']
   pull_request:
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
