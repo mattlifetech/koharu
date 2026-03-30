@@ -31,7 +31,7 @@ pub(crate) fn encode_image(image: &SerializableDynamicImage, ext: &str) -> anyho
     let mut buf = Vec::new();
     let mut cursor = Cursor::new(&mut buf);
     let format = ImageFormat::from_extension(ext).unwrap_or(ImageFormat::Jpeg);
-    image.0.write_to(&mut cursor, format)?;
+    image.write_to(&mut cursor, format)?;
     Ok(buf)
 }
 
@@ -45,7 +45,7 @@ pub(crate) fn encode_image_with_quality(
 
     match format {
         ImageFormat::WebP => {
-            let rgba = image.0.to_rgba8();
+            let rgba = image.to_rgba8();
             let (width, height) = rgba.dimensions();
             let encoder = webp::Encoder::from_rgba(&rgba, width, height);
             let memory = encoder.encode(quality as f32);
@@ -55,11 +55,11 @@ pub(crate) fn encode_image_with_quality(
             let mut cursor = Cursor::new(&mut buf);
             let mut enc =
                 ::image::codecs::jpeg::JpegEncoder::new_with_quality(&mut cursor, quality);
-            enc.encode_image(&image.0)?;
+            enc.encode_image(&**image)?;
         }
         _ => {
             let mut cursor = Cursor::new(&mut buf);
-            image.0.write_to(&mut cursor, format)?;
+            image.write_to(&mut cursor, format)?;
         }
     }
 

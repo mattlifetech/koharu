@@ -20,6 +20,16 @@ pub async fn update_doc(state: &AppState, index: usize, document: Document) -> R
     Ok(())
 }
 
+pub async fn drop_intermediates(state: &AppState, index: usize) -> Result<()> {
+    mutate_doc(state, index, |doc| {
+        doc.segment = None;
+        doc.inpainted = None;
+        doc.brush_layer = None;
+        Ok(())
+    })
+    .await
+}
+
 pub async fn mutate_doc<T, F>(state: &AppState, index: usize, mutator: F) -> Result<T>
 where
     F: FnOnce(&mut Document) -> Result<T>,

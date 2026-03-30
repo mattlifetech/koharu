@@ -185,6 +185,10 @@ async fn run_pipeline_inner(
 
             state_tx::update_doc(&res.state, doc_index, snapshot).await?;
         }
+
+        if !cancel.load(Ordering::Relaxed) {
+            state_tx::drop_intermediates(&res.state, doc_index).await?;
+        }
     }
 
     Ok(())

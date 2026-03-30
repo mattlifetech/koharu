@@ -8,7 +8,7 @@ use koharu_types::commands::{
 };
 use koharu_types::parse::parse_hex_color;
 use koharu_types::views::{TextBlockInfo, to_block_info};
-use koharu_types::{SerializableDynamicImage, TextBlock, TextStyle};
+use koharu_types::{TextBlock, TextStyle};
 use tracing::instrument;
 
 use crate::{AppResources, state_tx};
@@ -341,7 +341,7 @@ pub async fn dilate_mask(state: AppResources, payload: MaskMorphPayload) -> anyh
 
         let gray = segment.to_luma8();
         let dilated = imageproc::morphology::dilate(&gray, Norm::LInf, payload.radius);
-        document.segment = Some(SerializableDynamicImage(DynamicImage::ImageLuma8(dilated)));
+        document.segment = Some(DynamicImage::ImageLuma8(dilated).into());
         Ok(())
     })
     .await
@@ -360,7 +360,7 @@ pub async fn erode_mask(state: AppResources, payload: MaskMorphPayload) -> anyho
 
         let gray = segment.to_luma8();
         let eroded = imageproc::morphology::erode(&gray, Norm::LInf, payload.radius);
-        document.segment = Some(SerializableDynamicImage(DynamicImage::ImageLuma8(eroded)));
+        document.segment = Some(DynamicImage::ImageLuma8(eroded).into());
         Ok(())
     })
     .await
@@ -516,8 +516,8 @@ pub async fn inpaint_partial(
     }
 
     let image_crop =
-        SerializableDynamicImage(snapshot.image.crop_imm(x0, y0, crop_width, crop_height));
-    let mask_crop = SerializableDynamicImage(mask_image.crop_imm(x0, y0, crop_width, crop_height));
+        DynamicImage::from(snapshot.image.crop_imm(x0, y0, crop_width, crop_height)).into();
+    let mask_crop = DynamicImage::from(mask_image.crop_imm(x0, y0, crop_width, crop_height)).into();
 
     let inpainted_crop = state
         .ml

@@ -175,7 +175,7 @@ impl Document {
             id,
             path,
             name,
-            image: SerializableDynamicImage(img),
+            image: img.into(),
             width,
             height,
             ..Default::default()

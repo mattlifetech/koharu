@@ -5,8 +5,7 @@ use image::{DynamicImage, GrayImage, imageops};
 use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
 
 use koharu_types::{
-    Document, SerializableDynamicImage, TextAlign, TextBlock, TextShaderEffect, TextStrokeStyle,
-    TextStyle,
+    Document, TextAlign, TextBlock, TextShaderEffect, TextStrokeStyle, TextStyle,
 };
 
 use crate::{
@@ -104,12 +103,12 @@ impl Renderer {
                 };
                 imageops::overlay(
                     &mut rendered,
-                    &block.0,
+                    &**block,
                     text_block.x as i64,
                     text_block.y as i64,
                 );
             }
-            document.rendered = Some(SerializableDynamicImage(DynamicImage::ImageRgba8(rendered)));
+            document.rendered = Some(DynamicImage::ImageRgba8(rendered).into());
         }
         Ok(())
     }
@@ -266,7 +265,7 @@ impl Renderer {
         text_block.y = layout_box.y;
         text_block.width = layout_box.width;
         text_block.height = layout_box.height;
-        text_block.rendered = Some(SerializableDynamicImage(DynamicImage::ImageRgba8(rendered)));
+        text_block.rendered = Some(DynamicImage::ImageRgba8(rendered).into());
         Ok(())
     }
 

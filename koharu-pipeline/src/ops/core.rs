@@ -129,7 +129,7 @@ pub async fn get_rendered_image(
 ) -> anyhow::Result<ThumbnailResult> {
     let doc = state_tx::read_doc(&state.state, payload.index).await?;
 
-    let mut source = doc.rendered.as_ref().unwrap_or(&doc.image).0.clone();
+    let mut source = (**doc.rendered.as_ref().unwrap_or(&doc.image)).clone();
 
     // Perform resizing if max_size is provided and image is larger
     if let Some(max_size) = payload.max_size {
@@ -143,7 +143,7 @@ pub async fn get_rendered_image(
         }
     }
 
-    let serializable_source = koharu_types::SerializableDynamicImage(source);
+    let serializable_source = source.into();
 
     let ext = payload.format.unwrap_or_else(|| document_ext(&doc));
     let bytes = if let Some(q) = payload.quality {
