@@ -22,6 +22,8 @@ static APP_ROOT: Lazy<PathBuf> = Lazy::new(|| {
 });
 static LIB_ROOT: Lazy<PathBuf> = Lazy::new(|| APP_ROOT.join("libs"));
 static MODEL_ROOT: Lazy<PathBuf> = Lazy::new(|| APP_ROOT.join("models"));
+static CACHE_DIR: Lazy<PathBuf> = Lazy::new(|| APP_ROOT.join("cache"));
+static STATE_PATH: Lazy<PathBuf> = Lazy::new(|| APP_ROOT.join("state.bin"));
 
 #[derive(Parser)]
 #[command(version = crate::version::APP_VERSION, about)]
@@ -72,6 +74,7 @@ fn initialize(headless: bool, _debug: bool) -> Result<()> {
         }
 
         crate::windows::enable_ansi_support().ok();
+        crate::windows::auto_setup_cuda_path();
     }
 
     tracing_subscriber::fmt()
@@ -141,7 +144,25 @@ async fn build_resources(cpu: bool) -> Result<AppResources> {
     );
     let llm = Arc::new(koharu_ml::llm::facade::Model::new(cpu));
     let renderer = Arc::new(Renderer::new().context("Failed to initialize renderer")?);
-    let state = Arc::new(RwLock::new(State::default()));
+
+    // Initialize image cache
+    koharu_types::set_cache_dir(CACHE_DIR.to_path_buf())?;
+
+    // Load state if exists
+    let state = if STATE_PATH.exists() {
+        match State::load(&*STATE_PATH) {
+            Ok(s) => {
+                tracing::info!("Loaded state from {:?}", *STATE_PATH);
+                Arc::new(RwLock::new(s))
+            }
+            Err(err) => {
+                tracing::error!(?err, "Failed to load state, starting from scratch");
+                Arc::new(RwLock::new(State::default()))
+            }
+        }
+    } else {
+        Arc::new(RwLock::new(State::default()))
+    };
 
     Ok(AppResources {
         state,
@@ -151,6 +172,8 @@ async fn build_resources(cpu: bool) -> Result<AppResources> {
         device: device(cpu)?,
         pipeline: Arc::new(RwLock::new(None)),
         version: crate::version::current(),
+        state_path: STATE_PATH.to_path_buf(),
+        cache_dir: CACHE_DIR.to_path_buf(),
     })
 }
 

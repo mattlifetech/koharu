@@ -103,3 +103,42 @@ pub fn add_dll_directory(path: &std::path::Path) -> Result<()> {
         Ok(())
     }
 }
+
+pub fn auto_setup_cuda_path() {
+    if let Ok(cuda_path) = std::env::var("CUDA_PATH") {
+        let bin_path = std::path::Path::new(&cuda_path).join("bin");
+        if bin_path.exists() {
+            let _ = add_dll_directory(&bin_path);
+            return;
+        }
+    }
+
+    let cuda_root = std::path::Path::new("C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA");
+    if let Ok(entries) = std::fs::read_dir(cuda_root) {
+        let mut versions = entries
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().map(|ft| ft.is_dir()).unwrap_or(false))
+            .filter_map(|e| e.file_name().into_string().ok())
+            .filter(|s| s.starts_with('v'))
+            .collect::<Vec<_>>();
+
+        versions.sort_by(|a, b| {
+            let parse_ver = |s: &str| {
+                s.trim_start_matches('v')
+                    .split('.')
+                    .next()
+                    .and_then(|major| major.parse::<u32>().ok())
+                    .unwrap_or(0)
+            };
+            parse_ver(b).cmp(&parse_ver(a))
+        });
+
+        for version in versions {
+            let bin_path = cuda_root.join(version).join("bin");
+            if bin_path.exists() {
+                let _ = add_dll_directory(&bin_path);
+                break;
+            }
+        }
+    }
+}
