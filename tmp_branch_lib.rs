@@ -12,7 +12,7 @@ pub use commands::*;
 pub use effect::TextShaderEffect;
 pub use events::*;
 pub use font::{FontPrediction, NamedFontPrediction, TextDirection};
-pub use image::{get_cache_dir, set_cache_dir, SerializableDynamicImage};
+pub use image::SerializableDynamicImage;
 pub use method::Method;
 
 use std::{path::PathBuf, sync::Arc};
@@ -171,16 +171,11 @@ impl Document {
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
-
-        let serializable_img = SerializableDynamicImage(Arc::new(img));
-        // Try to save to cache if cache dir is set
-        let _ = serializable_img.save_to_cache();
-
         Ok(Document {
             id,
             path,
             name,
-            image: serializable_img,
+            image: img.into(),
             width,
             height,
             ..Default::default()
@@ -191,20 +186,6 @@ impl Document {
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct State {
     pub documents: Vec<Document>,
-}
-
-impl State {
-    pub fn save(&self, path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
-        let bytes = postcard::to_stdvec(self)?;
-        std::fs::write(path, bytes)?;
-        Ok(())
-    }
-
-    pub fn load(path: impl AsRef<std::path::Path>) -> anyhow::Result<Self> {
-        let bytes = std::fs::read(path)?;
-        let state: Self = postcard::from_bytes(&bytes)?;
-        Ok(state)
-    }
 }
 
 pub type AppState = Arc<RwLock<State>>;

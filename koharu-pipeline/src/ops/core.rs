@@ -60,6 +60,12 @@ fn export_documents_matching(
     Ok(exported)
 }
 
+async fn save_state(state: &AppResources) -> anyhow::Result<()> {
+    let guard = state.state.read().await;
+    guard.save(&state.state_path)?;
+    Ok(())
+}
+
 pub async fn app_version(state: AppResources) -> anyhow::Result<String> {
     Ok(state.version.to_string())
 }
@@ -95,6 +101,8 @@ pub async fn get_document_names(state: AppResources) -> anyhow::Result<Vec<Strin
 pub async fn clear_documents(state: AppResources) -> anyhow::Result<()> {
     let mut guard = state.state.write().await;
     guard.documents.clear();
+    drop(guard);
+    save_state(&state).await?;
     Ok(())
 }
 
@@ -177,6 +185,8 @@ pub async fn open_documents(
     let count = docs.len();
     let mut guard = state.state.write().await;
     guard.documents = docs;
+    drop(guard);
+    save_state(&state).await?;
     Ok(count)
 }
 
@@ -200,7 +210,10 @@ pub async fn add_documents(
     guard
         .documents
         .sort_by(|a, b| natord::compare(&a.name, &b.name));
-    Ok(guard.documents.len())
+    let count = guard.documents.len();
+    drop(guard);
+    save_state(&state).await?;
+    Ok(count)
 }
 
 pub async fn export_document(

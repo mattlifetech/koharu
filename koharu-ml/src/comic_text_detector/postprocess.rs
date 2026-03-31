@@ -1157,37 +1157,51 @@ fn try_merge_text_line(block: &mut CtdBlock, other: &mut CtdBlock, font_size_tol
 }
 
 fn sort_regions(mut blocks: Vec<CtdBlock>) -> Vec<CtdBlock> {
+    if blocks.len() < 2 {
+        return blocks;
+    }
     let vertical_blocks = blocks
         .iter()
         .filter(|block| block.source_direction == TextDirection::Vertical)
         .count();
     let right_to_left = !blocks.is_empty() && vertical_blocks * 2 >= blocks.len();
-    blocks.sort_by(|a, b| compare_blocks_for_reading_order(a, b, right_to_left));
-    blocks
-}
 
-fn compare_blocks_for_reading_order(
-    a: &CtdBlock,
-    b: &CtdBlock,
-    right_to_left: bool,
-) -> std::cmp::Ordering {
-    let overlap_y = vertical_overlap(&a.bbox, &b.bbox);
-    let row_tolerance = (a.detected_font_size_px.max(b.detected_font_size_px) * 0.6).max(1.0);
-    if overlap_y > 0.0 || (a.center()[1] - b.center()[1]).abs() <= row_tolerance {
-        if right_to_left {
-            b.center()[0]
-                .total_cmp(&a.center()[0])
-                .then_with(|| a.center()[1].total_cmp(&b.center()[1]))
-        } else {
-            a.center()[0]
-                .total_cmp(&b.center()[0])
-                .then_with(|| a.center()[1].total_cmp(&b.center()[1]))
+    // Sort primarily by Y to group rows
+    blocks.sort_by(|a, b| a.center()[1].total_cmp(&b.center()[1]));
+
+    // Group blocks that are on the same "row" and sort them by X
+    let mut i = 0;
+    while i < blocks.len() {
+        let mut j = i + 1;
+        while j < blocks.len() {
+            let a = &blocks[i];
+            let b = &blocks[j];
+            let overlap_y = vertical_overlap(&a.bbox, &b.bbox);
+            let row_tolerance = (a.detected_font_size_px.max(b.detected_font_size_px) * 0.6).max(1.0);
+            if overlap_y > 0.0 || (b.center()[1] - a.center()[1]).abs() <= row_tolerance {
+                j += 1;
+            } else {
+                break; // Because it's already sorted by Y, we can stop here
+            }
         }
-    } else {
-        a.center()[1]
-            .total_cmp(&b.center()[1])
-            .then_with(|| a.center()[0].total_cmp(&b.center()[0]))
+
+        if j - i > 1 {
+            blocks[i..j].sort_by(|a, b| {
+                if right_to_left {
+                    b.center()[0]
+                        .total_cmp(&a.center()[0])
+                        .then_with(|| a.center()[1].total_cmp(&b.center()[1]))
+                } else {
+                    a.center()[0]
+                        .total_cmp(&b.center()[0])
+                        .then_with(|| a.center()[1].total_cmp(&b.center()[1]))
+                }
+            });
+        }
+        i = j;
     }
+
+    blocks
 }
 
 fn dedupe_blocks(blocks: &mut Vec<CtdBlock>) {

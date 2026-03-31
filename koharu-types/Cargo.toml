@@ -16,7 +16,9 @@ anyhow = { workspace = true }
 blake3 = { workspace = true }
 image = { workspace = true }
 schemars = { workspace = true }
-serde = { workspace = true }
+once_cell = { workspace = true }
+postcard = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 serde_bytes = { workspace = true }
 tokio = { workspace = true }
 

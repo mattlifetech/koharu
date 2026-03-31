@@ -189,6 +189,10 @@ async fn run_pipeline_inner(
         if !cancel.load(Ordering::Relaxed) {
             state_tx::drop_intermediates(&res.state, doc_index).await?;
         }
+
+        // Save state after each document is processed
+        let guard = res.state.read().await;
+        let _ = guard.save(&res.state_path);
     }
 
     Ok(())

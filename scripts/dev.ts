@@ -136,6 +136,9 @@ async function dev() {
     await setupCl()
   }
 
+  process.env.CMAKE_GENERATOR = 'Visual Studio 17 2022'
+  process.env.NVCCFLAGS = '-allow-unsupported-compiler'
+  process.env.NVCC_APPEND_FLAGS = '-allow-unsupported-compiler'
   const args = process.argv.slice(2)
   if (args.length === 0) {
     throw new Error('No command provided')

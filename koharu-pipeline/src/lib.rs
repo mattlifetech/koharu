@@ -3,6 +3,7 @@ pub mod ops;
 pub mod pipeline;
 pub mod state_tx;
 
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use koharu_ml::Device;
@@ -19,4 +20,6 @@ pub struct AppResources {
     pub device: Device,
     pub pipeline: Arc<RwLock<Option<pipeline::PipelineHandle>>>,
     pub version: &'static str,
+    pub state_path: PathBuf,
+    pub cache_dir: PathBuf,
 }
