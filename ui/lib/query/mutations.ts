@@ -708,7 +708,7 @@ export const useDocumentMutations = () => {
         ...cbzExportSettings,
         outputFileName: loadedFolderName
           ? `${loadedFolderName}_v2`
-          : 'koharu_export_v2',
+          : 'manga_offline_translate_export_v2',
       }
 
       await exportAsCbz(blobs, settingsToUse)

@@ -31,9 +31,8 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: ${{ github.ref_name }}
           releaseDraft: false
-          prerelease: false
+          prerelease: true
           args: --target aarch64-apple-darwin
           generateReleaseNotes: true
-          uploadUpdaterJson: false
-          uploadUpdaterSignatures: false
+          includeUpdaterJson: false
           uploadPlainBinary: true

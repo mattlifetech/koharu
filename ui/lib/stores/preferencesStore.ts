@@ -96,7 +96,7 @@ export const usePreferencesStore = create<PreferencesState>()(
       setHasHydrated: (val) => set({ hasHydrated: val }),
     }),
     {
-      name: 'koharu-config',
+      name: 'manga-offline-translate-config',
       onRehydrateStorage: (state) => {
         return () => {
           state.setHasHydrated(true)

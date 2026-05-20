@@ -14,7 +14,9 @@ import { invoke, isTauri } from '@/lib/backend'
 import { useDocumentMutations } from '@/lib/query/mutations'
 import Image from 'next/image'
 
-const GITHUB_REPO = 'mayocream/koharu'
+const APP_NAME = 'Manga Offline Translate'
+const GITHUB_REPO = 'mattlifetech/manga-offline-translate'
+const ORIGINAL_REPO = 'mayocream/koharu'
 
 type VersionStatus = 'loading' | 'latest' | 'outdated' | 'error'
 
@@ -79,15 +81,21 @@ export default function AboutPage() {
             <div className='mb-8 flex flex-col items-center text-center'>
               <Image
                 src='/icon-large.png'
-                alt='Koharu'
+                alt={APP_NAME}
                 width={96}
                 height={96}
                 className='mb-4'
                 draggable={false}
               />
-              <h2 className='text-foreground mb-1 text-xl font-bold'>Koharu</h2>
+              <h2 className='text-foreground mb-1 text-xl font-bold'>
+                {APP_NAME}
+              </h2>
               <p className='text-muted-foreground text-sm'>
                 {t('settings.aboutTagline')}
+              </p>
+              <p className='text-muted-foreground mt-2 max-w-sm text-xs'>
+                Unofficial fork of Koharu. Not affiliated with or endorsed by
+                the original Koharu maintainers.
               </p>
             </div>
 
@@ -131,10 +139,12 @@ export default function AboutPage() {
                     {t('settings.aboutAuthor')}
                   </span>
                   <button
-                    onClick={() => openExternal('https://github.com/mayocream')}
+                    onClick={() =>
+                      openExternal('https://github.com/mattlifetech')
+                    }
                     className='text-foreground font-medium hover:underline'
                   >
-                    Mayo
+                    MLT
                   </button>
                 </div>
                 <div className='flex items-center justify-between'>
@@ -147,7 +157,20 @@ export default function AboutPage() {
                     }
                     className='text-foreground font-medium hover:underline'
                   >
-                    GitHub
+                    Fork source
+                  </button>
+                </div>
+                <div className='flex items-center justify-between'>
+                  <span className='text-muted-foreground'>
+                    Original project
+                  </span>
+                  <button
+                    onClick={() =>
+                      openExternal(`https://github.com/${ORIGINAL_REPO}`)
+                    }
+                    className='text-foreground font-medium hover:underline'
+                  >
+                    Koharu by Mayo
                   </button>
                 </div>
               </div>

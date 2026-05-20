@@ -27,6 +27,6 @@ jobs:
       - name: Upload Artifact (macOS)
         uses: actions/upload-artifact@v4
         with:
-          name: koharu-macos-dmg
+          name: manga-offline-translate-macos-dmg
           path: target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
           retention-days: 7

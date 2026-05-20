@@ -1,6 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "identifier": "Koharu",
+  "productName": "Manga Offline Translate",
+  "identifier": "com.mattlifetech.mangaofflinetranslate",
   "build": {
     "beforeDevCommand": "npm --prefix ui run dev",
     "beforeBuildCommand": "npm --prefix ui run build",
@@ -20,7 +21,7 @@
         "minWidth": 900,
         "minHeight": 600,
         "center": true,
-        "title": "Koharu",
+        "title": "Manga Offline Translate",
         "decorations": false
       },
       {
@@ -44,13 +45,14 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": ["../LICENSE", "../NOTICE.md"],
     "createUpdaterArtifacts": false
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVGNjJGMTlEODk0MjkwMjMKUldRamtFS0puZkZpN3hWZ1BVSkoyUEd1N1RvV09DL01XK2FmcEZOM1R4eGh5cDZ6dEVrTzJNSW4K",
       "endpoints": [
-        "https://github.com/mattlifetech/koharu/releases/latest/download/latest.json"
+        "https://github.com/mattlifetech/manga-offline-translate/releases/latest/download/latest.json"
       ]
     }
   }

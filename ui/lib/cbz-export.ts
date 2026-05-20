@@ -94,7 +94,7 @@ export async function exportAsCbz(
   }
 
   const blob = await zipWriter.close()
-  const outName = `${settings.outputFileName || 'koharu_export'}.${settings.archiveFormat}`
+  const outName = `${settings.outputFileName || 'manga_offline_translate_export'}.${settings.archiveFormat}`
   try {
     await fileSave(blob, { fileName: outName })
   } catch {

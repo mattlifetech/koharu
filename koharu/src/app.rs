@@ -17,7 +17,7 @@ use koharu_types::State;
 
 static APP_ROOT: Lazy<PathBuf> = Lazy::new(|| {
     dirs::data_local_dir()
-        .map(|path| path.join("Koharu"))
+        .map(|path| path.join("Manga Offline Translate"))
         .unwrap_or_default()
 });
 static LIB_ROOT: Lazy<PathBuf> = Lazy::new(|| APP_ROOT.join("libs"));
@@ -80,7 +80,7 @@ fn initialize(headless: bool, _debug: bool) -> Result<()> {
     let log_file = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
-        .open("/tmp/koharu.log")
+        .open("/tmp/manga-offline-translate.log")
         .ok();
     let writer = match log_file {
         Some(f) => tracing_subscriber::fmt::writer::BoxMakeWriter::new(std::sync::Arc::new(f)),

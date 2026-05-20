@@ -1,10 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "identifier": "Koharu",
+  "identifier": "com.mattlifetech.mangaofflinetranslate",
   "build": {
-    "features": [
-      "metal"
-    ]
+    "features": ["metal"]
   },
   "bundle": {
     "macOS": {

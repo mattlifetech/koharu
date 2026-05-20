@@ -1,15 +1,31 @@
-# Koharu
+# Manga Offline Translate
 
 [日本語](./docs/README.ja.md) | [简体中文](./docs/README.zh-CN.md)
 
-ML-powered manga translator, written in **Rust**.
+ML-powered offline manga translator, written in **Rust**.
 
-Koharu introduces a new workflow for manga translation, utilizing the power of ML to automate the process. It combines the capabilities of object detection, OCR, inpainting, and LLMs to create a seamless translation experience.
+Manga Offline Translate is an unofficial fork of
+[Koharu](https://github.com/mayocream/koharu), maintained by MLT. It is not
+affiliated with, sponsored by, or endorsed by the original Koharu maintainers.
 
-Under the hood, Koharu uses [candle](https://github.com/huggingface/candle) for high-performance inference, and uses [Tauri](https://github.com/tauri-apps/tauri) for the GUI. All components are written in Rust, ensuring safety and speed.
+Original project: https://github.com/mayocream/koharu
+
+Fork source: https://github.com/mattlifetech/manga-offline-translate
+
+License: GNU General Public License v3.0 only. See [LICENSE](LICENSE) and
+[NOTICE.md](NOTICE.md).
+
+This fork is based on Koharu 0.37.0 source history. The closest upstream
+merge-base in this fork is `23f7d9fb9b4e9fcbab16ce317660cb91576ce15f` from
+`mayocream/koharu`.
+
+Manga Offline Translate introduces a new workflow for manga translation, utilizing the power of ML to automate the process. It combines the capabilities of object detection, OCR, inpainting, and LLMs to create a seamless translation experience.
+
+Under the hood, Manga Offline Translate uses [candle](https://github.com/huggingface/candle) for high-performance inference, and uses [Tauri](https://github.com/tauri-apps/tauri) for the GUI. All components are written in Rust, ensuring safety and speed.
 
 > [!NOTE]
-> Koharu runs ML models **locally** on your machine, ensuring your data privacy. No data is sent to external servers. We guarantee that Koharu does not collect any user data.
+> Manga Offline Translate runs ML models **locally** on your machine. No image
+> data is sent to external servers by the app.
 
 ---
 
@@ -31,7 +47,7 @@ Under the hood, Koharu uses [candle](https://github.com/huggingface/candle) for 
 
 ### Output folders
 
-When images are opened from a local folder, Koharu writes intermediate and final
+When images are opened from a local folder, Manga Offline Translate writes intermediate and final
 outputs next to the source images:
 
 - `inpainted/`: pages after original text removal
@@ -40,7 +56,7 @@ outputs next to the source images:
 Keeping these files beside the source images makes batch results easy to inspect,
 clear, or archive without searching the application cache folder.
 
-During batch processing, Koharu may skip an oversized or problematic inpainting
+During batch processing, Manga Offline Translate may skip an oversized or problematic inpainting
 region if running the ML inpaint model for that region would exceed the GPU
 allocation limits. The page continues processing where possible, and the batch
 continues with later images instead of stopping on that file.
@@ -65,41 +81,42 @@ continues with later images instead of stopping on that file.
 
 ### MCP Server
 
-Koharu has a built-in MCP server that can be used to integrate with AI agents. By default, the MCP server will listen on a random port, but you can specify the port using the `--port` flag.
+Manga Offline Translate has a built-in MCP server that can be used to integrate with AI agents. By default, the MCP server will listen on a random port, but you can specify the port using the `--port` flag.
 
 ```bash
 # macOS / Linux
-koharu --port 9999
+manga-offline-translate --port 9999
 # Windows
-koharu.exe --port 9999
+manga-offline-translate.exe --port 9999
 ```
 
 You can input `http://localhost:9999/mcp` into the MCP server URL field in your AI agent.
 
 ### OpenClaw AI Agent Skill
 
-Koharu provides a built-in [OpenClaw Skill](https://openclaw.ai/) to automate batch translation of manga archives (ZIP/CBZ). When triggered, an AI agent can automatically scan a folder, launch Koharu via MCP, apply your saved settings, process all pages, and package the translated results into new CBZ files.
+Manga Offline Translate provides a built-in [OpenClaw Skill](https://openclaw.ai/) to automate batch translation of manga archives (ZIP/CBZ). When triggered, an AI agent can automatically scan a folder, launch Manga Offline Translate via MCP, apply your saved settings, process all pages, and package the translated results into new CBZ files.
 
 To use it, copy or symlink the skill directory to your OpenClaw skills folder:
-- **Skill location:** [`docs/skills/koharu-batch-translate/`](./docs/skills/koharu-batch-translate/)
-- **Instructions:** See the [SKILL.md](./docs/skills/koharu-batch-translate/SKILL.md) file for setup details and required environment variables (`KOHARU_INBOX` and `KOHARU_OUTBOX`).
+
+- **Skill location:** [`docs/skills/manga-offline-translate-batch/`](./docs/skills/manga-offline-translate-batch/)
+- **Instructions:** See the [SKILL.md](./docs/skills/manga-offline-translate-batch/SKILL.md) file for setup details and required environment variables (`MANGA_OFFLINE_TRANSLATE_INBOX` and `MANGA_OFFLINE_TRANSLATE_OUTBOX`).
 
 ### Headless Mode
 
-Koharu can be run in headless mode via command line.
+Manga Offline Translate can be run in headless mode via command line.
 
 ```bash
 # macOS / Linux
-koharu --port 4000 --headless
+manga-offline-translate --port 4000 --headless
 # Windows
-koharu.exe --port 4000 --headless
+manga-offline-translate.exe --port 4000 --headless
 ```
 
-You can now access Koharu Web UI at `http://localhost:4000`.
+You can now access Manga Offline Translate Web UI at `http://localhost:4000`.
 
 ### File association
 
-On Windows, Koharu automatically associates `.khr` files, so you can open them by double-clicking. The `.khr` files can also be opened
+On Windows, Manga Offline Translate automatically associates `.khr` files, so you can open them by double-clicking. The `.khr` files can also be opened
 from as picture to view the thumbnails of the contained images.
 
 ## GPU acceleration
@@ -108,54 +125,54 @@ CUDA and Metal are supported for GPU acceleration, significantly improving perfo
 
 ### CUDA
 
-Koharu is built with CUDA support, allowing it to leverage the power of NVIDIA GPUs for faster processing.
+Manga Offline Translate is built with CUDA support, allowing it to leverage the power of NVIDIA GPUs for faster processing.
 
-Koharu bundles CUDA toolkit 13.1 and cuDNN 9.19, dylibs will be automatically extracted to the application data directory on first run.
+Manga Offline Translate bundles CUDA toolkit 13.1 and cuDNN 9.19, dylibs will be automatically extracted to the application data directory on first run.
 
 > [!NOTE]
 > Please ensure that your system has the latest NVIDIA drivers installed. You can download the latest drivers via [NVIDIA App](https://www.nvidia.com/en-us/software/nvidia-app/).
 
 #### Supported NVIDIA GPUs
 
-Koharu supports NVIDIA GPUs with compute capability 7.5 or higher.
+Manga Offline Translate supports NVIDIA GPUs with compute capability 7.5 or higher.
 
 Please make sure your GPU is supported by checking the [CUDA GPU Compute Capability](https://developer.nvidia.com/cuda-gpus) and the [cuDNN Support Matrix](https://docs.nvidia.com/deeplearning/cudnn/backend/latest/reference/support-matrix.html).
 
 ### Metal
 
-Koharu supports Metal for GPU acceleration on macOS with Apple Silicon (M1, M2, etc.). This allows Koharu to run efficiently on a wide range of Apple devices.
+Manga Offline Translate supports Metal for GPU acceleration on macOS with Apple Silicon (M1, M2, etc.). This allows Manga Offline Translate to run efficiently on a wide range of Apple devices.
 
 ### CPU fallback
 
-You can always force Koharu to use CPU for inference:
+You can always force Manga Offline Translate to use CPU for inference:
 
 ```bash
 # macOS / Linux
-koharu --cpu
+manga-offline-translate --cpu
 # Windows
-koharu.exe --cpu
+manga-offline-translate.exe --cpu
 ```
 
 ## ML Models
 
-Koharu relies on a mixin of computer vision and natural language processing models to perform its tasks.
+Manga Offline Translate relies on a mixin of computer vision and natural language processing models to perform its tasks.
 
 ### Computer Vision Models
 
-Koharu uses several pre-trained models for different tasks:
+Manga Offline Translate uses several pre-trained models for different tasks:
 
 - [comic-text-detector](https://github.com/dmMaze/comic-text-detector)
 - [manga-ocr](https://github.com/kha-white/manga-ocr)
 - [AnimeMangaInpainting](https://huggingface.co/dreMaz/AnimeMangaInpainting)
 - [YuzuMarker.FontDetection](https://github.com/JeffersonQin/YuzuMarker.FontDetection)
 
-The models will be automatically downloaded when you run Koharu for the first time.
+The models will be automatically downloaded when you run Manga Offline Translate for the first time.
 
 We convert the original models to safetensors format for better performance and compatibility with Rust. The converted models are hosted on [Hugging Face](https://huggingface.co/mayocream).
 
 ### Large Language Models
 
-Koharu supports various quantized LLMs in GGUF format via [candle](https://github.com/huggingface/candle), and preselect model based on system locale settings. Supported models and suggested usage:
+Manga Offline Translate supports various quantized LLMs in GGUF format via [candle](https://github.com/huggingface/candle), and preselect model based on system locale settings. Supported models and suggested usage:
 
 For translating to English:
 
@@ -175,13 +192,13 @@ LLMs will be automatically downloaded on demand when you select a model in the s
 
 ## Installation
 
-You can download this fork's latest macOS preview release from the [releases page](https://github.com/mattlifetech/koharu/releases/latest).
+You can download this fork's latest macOS preview release from the [releases page](https://github.com/mattlifetech/manga-offline-translate/releases/latest).
 
-We provide pre-built binaries for Windows, macOS, and Linux. For other platforms, you may need to build from source, see the [Development](#development) section below.
+This fork currently provides macOS preview builds. For other platforms, build from source; see the [Development](#development) section below.
 
 ## Development
 
-To build Koharu from source, follow the steps below.
+To build Manga Offline Translate from source, follow the steps below.
 
 ### Prerequisites
 
@@ -204,7 +221,7 @@ The built binaries will be located in the `target/release` directory.
 
 ## Sponsorship
 
-If you find Koharu useful, consider sponsoring the project to support its development!
+If you find the original Koharu project useful, consider sponsoring its maintainers:
 
 - [GitHub Sponsors](https://github.com/sponsors/mayocream)
 - [Patreon](https://www.patreon.com/mayocream)
@@ -217,4 +234,4 @@ If you find Koharu useful, consider sponsoring the project to support its develo
 
 ## License
 
-Koharu is licensed under the [GNU General Public License v3.0](LICENSE).
+Manga Offline Translate is licensed under the [GNU General Public License v3.0](LICENSE). Original Koharu copyright notices are retained, and this fork's source is published at https://github.com/mattlifetech/manga-offline-translate.

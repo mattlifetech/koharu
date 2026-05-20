@@ -4,7 +4,7 @@ import { QueryClient } from '@tanstack/react-query'
 import { persistQueryClient } from '@tanstack/react-query-persist-client'
 import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persister'
 
-const PERSIST_KEY = 'koharu-rq-v1'
+const PERSIST_KEY = 'manga-offline-translate-rq-v1'
 const PERSIST_MAX_AGE = 24 * 60 * 60 * 1000
 
 let client: QueryClient | null = null

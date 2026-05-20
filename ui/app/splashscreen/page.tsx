@@ -75,7 +75,9 @@ export default function SplashScreen() {
 
   return (
     <main className='bg-background flex min-h-screen flex-col items-center justify-center select-none'>
-      <span className='text-primary text-2xl font-semibold'>Koharu</span>
+      <span className='text-primary text-2xl font-semibold'>
+        Manga Offline Translate
+      </span>
       <span className='text-primary mt-2 text-lg'>
         {t('common.initializing')}
       </span>

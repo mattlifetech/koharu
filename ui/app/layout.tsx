@@ -29,7 +29,7 @@ const notoSansTC = Noto_Sans_TC({
 })
 
 export const metadata: Metadata = {
-  title: 'Koharu',
+  title: 'Manga Offline Translate',
 }
 
 function RootLayout({

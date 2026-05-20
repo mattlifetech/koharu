@@ -1,5 +1,5 @@
 [package]
-name = "koharu"
+name = "manga-offline-translate"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -53,3 +53,6 @@ metal = ["koharu-ml/metal"]
 
 [build-dependencies]
 tauri-build = { workspace = true }
+
+[lib]
+name = "koharu"

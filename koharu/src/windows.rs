@@ -14,7 +14,7 @@ use windows_sys::Win32::System::LibraryLoader::{
     SetDefaultDllDirectories,
 };
 
-const CLASS_NAME: &str = "Koharu.khr";
+const CLASS_NAME: &str = "MangaOfflineTranslate.khr";
 // const THUMBNAIL_PROVIDER: &str = "{e357fccd-a995-4576-b01f-234630154e96}";
 
 pub fn register_khr() -> Result<()> {
@@ -29,7 +29,7 @@ pub fn register_khr() -> Result<()> {
     // ext_thumb.set_value("", &THUMBNAIL_PROVIDER)?;
 
     let (class_key, _) = classes.create_subkey(CLASS_NAME)?;
-    class_key.set_value("", &"Koharu Document")?;
+    class_key.set_value("", &"Manga Offline Translate Document")?;
     // let (thumb_key, _) = class_key.create_subkey(format!("ShellEx\\{THUMBNAIL_PROVIDER}"))?;
     // thumb_key.set_value("", &THUMBNAIL_PROVIDER)?;
 

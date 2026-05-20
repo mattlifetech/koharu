@@ -44,7 +44,7 @@ export function CbzExportDialog({ open, onOpenChange }: Props) {
   const cbzExportSettings = usePreferencesStore((s) => s.cbzExportSettings)
   const [settings, setSettings] = useState<CbzExportSettings>({
     ...cbzExportSettings,
-    outputFileName: 'koharu_export',
+    outputFileName: 'manga_offline_translate_export',
   })
 
   useEffect(() => {
@@ -230,7 +230,7 @@ export function CbzExportDialog({ open, onOpenChange }: Props) {
                 onChange={(e) =>
                   setSettings((s) => ({ ...s, outputFileName: e.target.value }))
                 }
-                placeholder='koharu_export'
+                placeholder='manga_offline_translate_export'
                 className='h-8 text-sm'
               />
               <span className='text-muted-foreground shrink-0 text-xs'>

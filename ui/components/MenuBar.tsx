@@ -130,7 +130,8 @@ export function MenuBar() {
     },
     {
       label: t('menu.github'),
-      onSelect: () => openExternal('https://github.com/mayocream/koharu'),
+      onSelect: () =>
+        openExternal('https://github.com/mattlifetech/manga-offline-translate'),
     },
   ]
 
@@ -147,7 +148,7 @@ export function MenuBar() {
         <div className='flex h-full items-center pl-2 select-none'>
           <Image
             src='/icon.png'
-            alt='Koharu'
+            alt='Manga Offline Translate'
             width={18}
             height={18}
             draggable={false}

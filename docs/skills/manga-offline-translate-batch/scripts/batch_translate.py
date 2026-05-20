@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Koharu Batch Translate Script
-Connects to Koharu's MCP server, processes folders of manga images,
+Manga Offline Translate Batch Translate Script
+Connects to Manga Offline Translate's MCP server, processes folders of manga images,
 and exports translated CBZ archives.
 
 Usage:
@@ -34,7 +34,7 @@ SUPPORTED_IMAGES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 # MCP client (minimal streamable HTTP client)
 # ---------------------------------------------------------------------------
 
-class KoharuMcpClient:
+class MangaOfflineTranslateMcpClient:
     """Minimal MCP client using the streamable HTTP transport."""
 
     def __init__(self, base_url: str):
@@ -69,7 +69,7 @@ class KoharuMcpClient:
         result = self._call("initialize", {
             "protocolVersion": "2024-11-05",
             "capabilities": {},
-            "clientInfo": {"name": "koharu-batch-translate", "version": "1.0.0"},
+            "clientInfo": {"name": "manga-offline-translate-batch", "version": "1.0.0"},
         })
         self._call("notifications/initialized", {})
         return result
@@ -86,22 +86,22 @@ class KoharuMcpClient:
 # ---------------------------------------------------------------------------
 
 def get_prefs_path() -> Path | None:
-    """Return path to Koharu's saved preferences JSON."""
+    """Return path to Manga Offline Translate's saved preferences JSON."""
     system = platform.system()
     if system == "Darwin":
-        base = Path.home() / "Library" / "Application Support" / "com.koharu" / "koharu-config.json"
+        base = Path.home() / "Library" / "Application Support" / "com.mattlifetech.mangaofflinetranslate" / "manga-offline-translate-config.json"
         # Try alternate location
         if not base.exists():
-            base = Path.home() / "Library" / "Application Support" / "Koharu" / "koharu-config.json"
+            base = Path.home() / "Library" / "Application Support" / "Manga Offline Translate" / "manga-offline-translate-config.json"
     elif system == "Windows":
-        base = Path(os.environ.get("APPDATA", "")) / "Koharu" / "koharu-config.json"
+        base = Path(os.environ.get("APPDATA", "")) / "Manga Offline Translate" / "manga-offline-translate-config.json"
     else:
-        base = Path.home() / ".config" / "Koharu" / "koharu-config.json"
+        base = Path.home() / ".config" / "Manga Offline Translate" / "manga-offline-translate-config.json"
     return base if base.exists() else None
 
 
 def load_preferences() -> dict:
-    """Load and return Koharu preferences, or return sensible defaults."""
+    """Load and return Manga Offline Translate preferences, or return sensible defaults."""
     path = get_prefs_path()
     if path:
         print(f"[config] Loading preferences from {path}")
@@ -165,7 +165,7 @@ def extract_archives(inbox: Path) -> list[Path]:
 
 
 # ---------------------------------------------------------------------------
-# Koharu processing
+# Manga Offline Translate processing
 # ---------------------------------------------------------------------------
 
 def get_image_paths(folder: Path) -> list[str]:
@@ -177,9 +177,9 @@ def get_image_paths(folder: Path) -> list[str]:
     return [str(p) for p in images]
 
 
-def process_folder(mcp: KoharuMcpClient, folder: Path, prefs: dict, out_dir: Path) -> Path | None:
+def process_folder(mcp: MangaOfflineTranslateMcpClient, folder: Path, prefs: dict, out_dir: Path) -> Path | None:
     """
-    Process a single folder of images through Koharu's full pipeline.
+    Process a single folder of images through Manga Offline Translate's full pipeline.
     Returns path to the created CBZ, or None if failed.
     """
     images = get_image_paths(folder)
@@ -201,7 +201,7 @@ def process_folder(mcp: KoharuMcpClient, folder: Path, prefs: dict, out_dir: Pat
     export_dir = out_dir / folder.name
     export_dir.mkdir(parents=True, exist_ok=True)
 
-    # 3. Process images in batches (Koharu loads all docs at once)
+    # 3. Process images in batches (Manga Offline Translate loads all docs at once)
     print(f"  [load] Opening {len(images)} images...")
     mcp.call_tool("open_documents", {"paths": images})
 
@@ -253,10 +253,10 @@ def process_folder(mcp: KoharuMcpClient, folder: Path, prefs: dict, out_dir: Pat
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Koharu Batch Manga Translator")
+    parser = argparse.ArgumentParser(description="Manga Offline Translate Batch Manga Translator")
     parser.add_argument("--inbox", required=True, help="Folder A: input directory with CBZ/ZIP archives")
     parser.add_argument("--outbox", required=True, help="Folder B: output directory for translated CBZ files")
-    parser.add_argument("--mcp-url", default=MCP_DEFAULT_URL, help=f"Koharu MCP server URL (default: {MCP_DEFAULT_URL})")
+    parser.add_argument("--mcp-url", default=MCP_DEFAULT_URL, help=f"Manga Offline Translate MCP server URL (default: {MCP_DEFAULT_URL})")
     args = parser.parse_args()
 
     inbox = Path(args.inbox).expanduser().resolve()
@@ -273,15 +273,15 @@ def main():
     print(f"[config] Language: {prefs['llm_language']}")
     print(f"[config] CBZ format: {prefs['cbz_format']} @ quality {prefs['cbz_quality']}")
 
-    # Connect to Koharu MCP
+    # Connect to Manga Offline Translate MCP
     print(f"\n[mcp] Connecting to {args.mcp_url}...")
-    mcp = KoharuMcpClient(args.mcp_url)
+    mcp = MangaOfflineTranslateMcpClient(args.mcp_url)
     try:
         mcp.initialize()
         print("[mcp] Connected.")
     except Exception as e:
-        print(f"[error] Cannot connect to Koharu MCP server: {e}")
-        print("[error] Make sure Koharu is running and accessible at the MCP URL.")
+        print(f"[error] Cannot connect to Manga Offline Translate MCP server: {e}")
+        print("[error] Make sure Manga Offline Translate is running and accessible at the MCP URL.")
         sys.exit(1)
 
     # Extract archives
@@ -292,7 +292,7 @@ def main():
         return
 
     # Process each folder
-    with tempfile.TemporaryDirectory(prefix="koharu_batch_") as tmp:
+    with tempfile.TemporaryDirectory(prefix="manga_offline_translate_batch_") as tmp:
         tmp_path = Path(tmp)
         produced_cbz = []
 

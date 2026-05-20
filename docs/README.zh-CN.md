@@ -1,5 +1,10 @@
 # Koharu
 
+> **非官方分支说明：** 本仓库现在发布 **Manga Offline Translate**，这是由
+> MLT 维护的 Koharu 非官方分支。本项目不隶属于原 Koharu 维护者，也未获得其
+> 背书。原项目：<https://github.com/mayocream/koharu>。分支源码：
+> <https://github.com/mattlifetech/manga-offline-translate>。
+
 基于机器学习（ML）的漫画翻译工具，使用 **Rust** 编写。
 
 Koharu 引入了一种新的漫画翻译工作流，利用机器学习能力自动化翻译流程。它将目标检测、OCR、图像修复（inpainting）和 LLM 结合起来，提供流畅的一体化翻译体验。
@@ -136,7 +141,7 @@ Koharu 通过 [candle](https://github.com/huggingface/candle) 支持 GGUF 格式
 
 ## 安装
 
-你可以在 [releases 页面](https://github.com/mayocream/koharu/releases/latest) 下载 Koharu 的最新版本。
+你可以在 [releases 页面](https://github.com/mattlifetech/manga-offline-translate/releases/latest) 下载 Koharu 的最新版本。
 
 我们提供 Windows、macOS 和 Linux 的预构建二进制包。其他平台可能需要从源码构建，详见下方 [开发](#开发) 部分。
 

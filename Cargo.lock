@@ -3892,34 +3892,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "koharu"
-version = "0.37.0"
-dependencies = [
- "anyhow",
- "clap",
- "dirs",
- "git-version",
- "koharu-ml",
- "koharu-pipeline",
- "koharu-renderer",
- "koharu-rpc",
- "koharu-runtime",
- "koharu-types",
- "once_cell",
- "rfd",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-updater",
- "tokio",
- "tracing",
- "tracing-subscriber",
- "windows 0.62.2",
- "windows-sys 0.61.2",
- "winreg",
-]
-
-[[package]]
 name = "koharu-http"
 version = "0.37.0"
 dependencies = [
@@ -4312,6 +4284,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "62bb907fe88d54d8d9ce32a3cceab4218ed2f6b7d35617cafe9adf84e43919cb"
 dependencies = [
  "libc",
+]
+
+[[package]]
+name = "manga-offline-translate"
+version = "0.37.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "dirs",
+ "git-version",
+ "koharu-ml",
+ "koharu-pipeline",
+ "koharu-renderer",
+ "koharu-rpc",
+ "koharu-runtime",
+ "koharu-types",
+ "once_cell",
+ "rfd",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-updater",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "windows 0.62.2",
+ "windows-sys 0.61.2",
+ "winreg",
 ]
 
 [[package]]
