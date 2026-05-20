@@ -5,6 +5,8 @@ pub mod prompt;
 pub mod provider;
 mod quantized_hunyuan_dense;
 mod quantized_lfm2;
+mod quantized_llama;
+mod quantized_qwen2;
 mod tokenizer;
 
 pub use model::{GenerateOptions, Llm};

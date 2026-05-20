@@ -1292,7 +1292,7 @@ fn topk_mask_candidates(image: &RgbImage, pred_mask: &GrayImage) -> Vec<Candidat
             }
         })
         .collect();
-    colors.sort_by(|a, b| b.1.cmp(&a.1));
+    colors.sort_by_key(|color| std::cmp::Reverse(color.1));
 
     let mut top_colors = Vec::new();
     let bin_tol = (total as f32 * 0.001).ceil() as u32;
@@ -1343,7 +1343,7 @@ fn otsu_mask_candidates(image: &RgbImage, pred_mask: &GrayImage) -> Vec<Candidat
             });
         candidates.push(minxor_threshold(thresholded, pred_mask));
     }
-    candidates.sort_by(|a, b| a.xor_sum.cmp(&b.xor_sum));
+    candidates.sort_by_key(|candidate| candidate.xor_sum);
     candidates.into_iter().take(1).collect()
 }
 
@@ -1365,7 +1365,7 @@ fn minxor_threshold(thresholded: GrayImage, pred_mask: &GrayImage) -> CandidateM
 }
 
 fn merge_mask_candidates(mut candidates: Vec<CandidateMask>, pred_mask: &GrayImage) -> GrayImage {
-    candidates.sort_by(|a, b| a.xor_sum.cmp(&b.xor_sum));
+    candidates.sort_by_key(|candidate| candidate.xor_sum);
     let mut mask_merged = GrayImage::new(pred_mask.width(), pred_mask.height());
     let pred = threshold_binary(&erode(pred_mask, Norm::LInf, 1), 60);
 

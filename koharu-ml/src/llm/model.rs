@@ -4,13 +4,14 @@ use anyhow::Result;
 use candle_core::quantized::gguf_file;
 use candle_core::{Device, Tensor};
 use candle_transformers::generation::{LogitsProcessor, Sampling};
-use candle_transformers::models::{quantized_llama, quantized_qwen2};
 use tokenizers::Tokenizer;
 
 use crate::device;
 use crate::llm::prompt::PromptRenderer;
 use crate::llm::tokenizer::TokenizerFromGguf;
-use crate::llm::{ModelId, quantized_hunyuan_dense, quantized_lfm2};
+use crate::llm::{
+    ModelId, quantized_hunyuan_dense, quantized_lfm2, quantized_llama, quantized_qwen2,
+};
 
 pub enum Model {
     Llama(quantized_llama::ModelWeights),
