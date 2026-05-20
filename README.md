@@ -29,6 +29,22 @@ Under the hood, Koharu uses [candle](https://github.com/huggingface/candle) for 
 
 ## Usage
 
+### Output folders
+
+When images are opened from a local folder, Koharu writes intermediate and final
+outputs next to the source images:
+
+- `inpainted/`: pages after original text removal
+- `rendered/`: translated pages after text rendering
+
+Keeping these files beside the source images makes batch results easy to inspect,
+clear, or archive without searching the application cache folder.
+
+During batch processing, Koharu may skip an oversized or problematic inpainting
+region if running the ML inpaint model for that region would exceed the GPU
+allocation limits. The page continues processing where possible, and the batch
+continues with later images instead of stopping on that file.
+
 ### Toolbars
 
 - **Left Toolbar**:

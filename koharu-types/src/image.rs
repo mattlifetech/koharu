@@ -2,7 +2,7 @@ use std::ops::Deref;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use ::image::{codecs::webp::WebPEncoder, ColorType, DynamicImage};
+use ::image::{ColorType, DynamicImage, codecs::webp::WebPEncoder};
 use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -60,6 +60,24 @@ impl SerializableDynamicImage {
         let img = ::image::load_from_memory(&bytes)?;
         Ok(Self(Arc::new(img)))
     }
+
+    pub fn save_to_path(&self, path: &Path) -> anyhow::Result<()> {
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        let rgba = self.0.to_rgba8();
+        let (width, height) = rgba.dimensions();
+        let mut file = std::fs::File::create(path)?;
+        let enc = WebPEncoder::new_lossless(&mut file);
+        enc.encode(&rgba, width, height, ColorType::Rgba8.into())?;
+        Ok(())
+    }
+
+    pub fn load_from_path(path: &Path) -> anyhow::Result<Self> {
+        let bytes = std::fs::read(path)?;
+        let img = ::image::load_from_memory(&bytes)?;
+        Ok(Self(Arc::new(img)))
+    }
 }
 
 impl Serialize for SerializableDynamicImage {
@@ -114,7 +132,7 @@ impl From<Arc<DynamicImage>> for SerializableDynamicImage {
 
 impl From<SerializableDynamicImage> for DynamicImage {
     fn from(wrapper: SerializableDynamicImage) -> Self {
-        (*wrapper.0).clone()
+        Arc::try_unwrap(wrapper.0).unwrap_or_else(|arc| (*arc).clone())
     }
 }
 

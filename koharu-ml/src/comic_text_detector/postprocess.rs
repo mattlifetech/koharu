@@ -1177,7 +1177,8 @@ fn sort_regions(mut blocks: Vec<CtdBlock>) -> Vec<CtdBlock> {
             let a = &blocks[i];
             let b = &blocks[j];
             let overlap_y = vertical_overlap(&a.bbox, &b.bbox);
-            let row_tolerance = (a.detected_font_size_px.max(b.detected_font_size_px) * 0.6).max(1.0);
+            let row_tolerance =
+                (a.detected_font_size_px.max(b.detected_font_size_px) * 0.6).max(1.0);
             if overlap_y > 0.0 || (b.center()[1] - a.center()[1]).abs() <= row_tolerance {
                 j += 1;
             } else {

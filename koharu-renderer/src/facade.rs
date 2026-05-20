@@ -4,9 +4,7 @@ use anyhow::Result;
 use image::{DynamicImage, GrayImage, imageops};
 use rayon::iter::{IntoParallelRefMutIterator, ParallelIterator};
 
-use koharu_types::{
-    Document, TextAlign, TextBlock, TextShaderEffect, TextStrokeStyle, TextStyle,
-};
+use koharu_types::{Document, TextAlign, TextBlock, TextShaderEffect, TextStrokeStyle, TextStyle};
 
 use crate::{
     font::{FamilyName, Font, FontBook, Properties},

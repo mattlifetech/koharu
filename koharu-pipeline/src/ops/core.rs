@@ -2,8 +2,8 @@ use std::path::{Path, PathBuf};
 
 use image::ImageFormat;
 use koharu_types::commands::{
-    DeviceInfo, FileResult, IndexPayload, OpenDocumentsPayload, OpenExternalPayload,
-    ThumbnailResult,
+    DeviceInfo, FileResult, IndexPayload, NativeOpenDocumentsPayload, OpenDocumentsPayload,
+    OpenExternalPayload, ThumbnailResult,
 };
 use rfd::FileDialog;
 
@@ -25,6 +25,66 @@ async fn pick_output_dir() -> anyhow::Result<Option<PathBuf>> {
     Ok(tokio::task::spawn_blocking(|| FileDialog::new().pick_folder()).await?)
 }
 
+fn supported_image_path(path: &Path) -> bool {
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            matches!(
+                ext.to_ascii_lowercase().as_str(),
+                "png" | "jpg" | "jpeg" | "webp"
+            )
+        })
+        .unwrap_or(false)
+}
+
+async fn pick_native_document_paths(folder: bool) -> anyhow::Result<Vec<PathBuf>> {
+    Ok(
+        tokio::task::spawn_blocking(move || -> anyhow::Result<Vec<PathBuf>> {
+            if folder {
+                let Some(dir) = FileDialog::new().pick_folder() else {
+                    return Ok(Vec::new());
+                };
+                let mut paths = std::fs::read_dir(dir)?
+                    .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+                    .filter(|path| path.is_file() && supported_image_path(path))
+                    .collect::<Vec<_>>();
+                paths.sort_by(|a, b| {
+                    natord::compare(
+                        &a.file_name().unwrap_or_default().to_string_lossy(),
+                        &b.file_name().unwrap_or_default().to_string_lossy(),
+                    )
+                });
+                Ok(paths)
+            } else {
+                Ok(FileDialog::new()
+                    .add_filter("Images", &["png", "jpg", "jpeg", "webp"])
+                    .pick_files()
+                    .unwrap_or_default())
+            }
+        })
+        .await??,
+    )
+}
+
+fn load_documents_from_paths(paths: Vec<PathBuf>) -> anyhow::Result<Vec<koharu_types::Document>> {
+    if paths.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut documents = Vec::new();
+    for path in paths {
+        if !supported_image_path(&path) {
+            continue;
+        }
+        match koharu_types::Document::open(path) {
+            Ok(doc) => documents.push(doc),
+            Err(err) => tracing::warn!(?err, "Failed to parse document from native path"),
+        }
+    }
+    documents.sort_by(|a, b| natord::compare(&a.name, &b.name));
+    Ok(documents)
+}
+
 fn document_ext(document: &koharu_types::Document) -> String {
     document
         .path
@@ -39,7 +99,7 @@ fn export_documents_matching(
     output_dir: &Path,
     suffix: &str,
     missing_error: &str,
-    image: impl Fn(&koharu_types::Document) -> Option<&koharu_types::SerializableDynamicImage>,
+    image: impl Fn(&koharu_types::Document) -> Option<koharu_types::SerializableDynamicImage>,
 ) -> anyhow::Result<usize> {
     let mut exported = 0usize;
 
@@ -51,7 +111,7 @@ fn export_documents_matching(
         let ext = document_ext(document);
         let output_path =
             next_available_path(output_dir, &format!("{}_{}", document.name, suffix), &ext);
-        let bytes = encode_image(image, &ext)?;
+        let bytes = encode_image(&image, &ext)?;
         std::fs::write(&output_path, bytes)?;
         exported += 1;
     }
@@ -110,7 +170,15 @@ pub async fn get_document(
     state: AppResources,
     payload: IndexPayload,
 ) -> anyhow::Result<koharu_types::Document> {
-    state_tx::read_doc(&state.state, payload.index).await
+    let mut doc = state_tx::read_doc(&state.state, payload.index).await?;
+    // Completed layers may have been persisted to disk to free RAM; load them for this response.
+    if doc.inpainted.is_none() {
+        doc.inpainted = doc.load_inpainted();
+    }
+    if doc.rendered.is_none() {
+        doc.rendered = doc.load_rendered();
+    }
+    Ok(doc)
 }
 
 pub async fn get_thumbnail(
@@ -119,7 +187,16 @@ pub async fn get_thumbnail(
 ) -> anyhow::Result<ThumbnailResult> {
     let doc = state_tx::read_doc(&state.state, payload.index).await?;
 
-    let source = doc.rendered.as_ref().unwrap_or(&doc.image);
+    let rendered_from_disk = if doc.rendered.is_none() {
+        doc.load_rendered()
+    } else {
+        None
+    };
+    let source = doc
+        .rendered
+        .as_ref()
+        .or(rendered_from_disk.as_ref())
+        .unwrap_or(&doc.image);
     let thumbnail = source.thumbnail(200, 200);
 
     let mut buf = std::io::Cursor::new(Vec::new());
@@ -137,7 +214,13 @@ pub async fn get_rendered_image(
 ) -> anyhow::Result<ThumbnailResult> {
     let doc = state_tx::read_doc(&state.state, payload.index).await?;
 
-    let mut source = (**doc.rendered.as_ref().unwrap_or(&doc.image)).clone();
+    let rendered_from_disk = if doc.rendered.is_none() {
+        doc.load_rendered()
+    } else {
+        None
+    };
+    let rendered_ref = doc.rendered.as_ref().or(rendered_from_disk.as_ref());
+    let mut source = (**rendered_ref.unwrap_or(&doc.image)).clone();
 
     // Perform resizing if max_size is provided and image is larger
     if let Some(max_size) = payload.max_size {
@@ -216,6 +299,46 @@ pub async fn add_documents(
     Ok(count)
 }
 
+pub async fn native_open_documents(
+    state: AppResources,
+    payload: NativeOpenDocumentsPayload,
+) -> anyhow::Result<usize> {
+    let paths = pick_native_document_paths(payload.folder).await?;
+    let docs = load_documents_from_paths(paths)?;
+    let count = docs.len();
+    if count == 0 {
+        return Ok(0);
+    }
+
+    let mut guard = state.state.write().await;
+    guard.documents = docs;
+    drop(guard);
+    save_state(&state).await?;
+    Ok(count)
+}
+
+pub async fn native_add_documents(
+    state: AppResources,
+    payload: NativeOpenDocumentsPayload,
+) -> anyhow::Result<usize> {
+    let paths = pick_native_document_paths(payload.folder).await?;
+    let docs = load_documents_from_paths(paths)?;
+    if docs.is_empty() {
+        let guard = state.state.read().await;
+        return Ok(guard.documents.len());
+    }
+
+    let mut guard = state.state.write().await;
+    guard.documents.extend(docs);
+    guard
+        .documents
+        .sort_by(|a, b| natord::compare(&a.name, &b.name));
+    let count = guard.documents.len();
+    drop(guard);
+    save_state(&state).await?;
+    Ok(count)
+}
+
 pub async fn export_document(
     state: AppResources,
     payload: IndexPayload,
@@ -230,11 +353,10 @@ pub async fn export_document(
         .to_string();
 
     let rendered = document
-        .rendered
-        .as_ref()
+        .load_rendered()
         .ok_or_else(|| anyhow::anyhow!("No rendered image found"))?;
 
-    let bytes = encode_image(rendered, &ext)?;
+    let bytes = encode_image(&rendered, &ext)?;
     let filename = format!("{}_koharu.{}", document.name, ext);
     let content_type = mime_from_ext(&ext).to_string();
 
@@ -256,7 +378,7 @@ pub async fn export_all_inpainted(state: AppResources) -> anyhow::Result<usize> 
         &output_dir,
         "inpainted",
         "No inpainted images found to export",
-        |document| document.inpainted.as_ref(),
+        |document| document.load_inpainted(),
     )
 }
 
@@ -271,6 +393,6 @@ pub async fn export_all_rendered(state: AppResources) -> anyhow::Result<usize> {
         &output_dir,
         "rendered",
         "No rendered images found to export",
-        |document| document.rendered.as_ref(),
+        |document| document.load_rendered(),
     )
 }

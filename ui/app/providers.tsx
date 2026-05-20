@@ -85,6 +85,8 @@ function ProvidersBootstrap({ children }: { children: ReactNode }) {
   }, [queryClient, setTotalPages])
 
   useEffect(() => {
+    let prevDocument = -1
+
     const unsubscribe = subscribeProcessProgress((payload) => {
       let progress
       try {
@@ -118,9 +120,27 @@ function ProvidersBootstrap({ children }: { children: ReactNode }) {
           })
           .catch(() => {})
 
+        // When pipeline moves to a new document, the previous doc's render is complete
+        if (prevDocument >= 0 && progress.currentDocument !== prevDocument) {
+          useEditorUiStore.getState().setShowRenderedImage(true)
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.documents.current(prevDocument),
+          })
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.documents.thumbnailRoot,
+          })
+        }
+        prevDocument = progress.currentDocument
+
+        // Always invalidate the pipeline's current document and the UI-selected document
         queryClient.invalidateQueries({
-          queryKey: queryKeys.documents.current(currentDocumentIndex),
+          queryKey: queryKeys.documents.current(progress.currentDocument),
         })
+        if (currentDocumentIndex !== progress.currentDocument) {
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.documents.current(currentDocumentIndex),
+          })
+        }
       } else {
         if (progress.status === 'completed') {
           useEditorUiStore.getState().setShowRenderedImage(true)

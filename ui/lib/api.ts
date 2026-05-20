@@ -3,6 +3,7 @@
 import { z } from 'zod'
 import {
   invoke,
+  isTauri,
   fetchThumbnail as fetchThumbnailBlob,
   type ProcessProgress,
   type DownloadProgress,
@@ -107,19 +108,29 @@ export const api = {
   },
 
   async addDocuments(): Promise<number> {
-    return invoke('add_documents')
+    return invoke(isTauri() ? 'native_add_documents' : 'add_documents', {
+      folder: false,
+    } as any)
   },
 
   async openDocuments(): Promise<number> {
-    return invoke('open_documents')
+    return invoke(isTauri() ? 'native_open_documents' : 'open_documents', {
+      folder: false,
+    } as any)
   },
 
   async addDocumentsFromFolder(): Promise<number> {
+    if (isTauri()) {
+      return invoke('native_add_documents' as any, { folder: true })
+    }
     const { openDirectoryRpc } = await import('@/lib/backend')
     return openDirectoryRpc('add_documents')
   },
 
   async openDocumentsFromFolder(): Promise<number> {
+    if (isTauri()) {
+      return invoke('native_open_documents' as any, { folder: true })
+    }
     const { openDirectoryRpc } = await import('@/lib/backend')
     return openDirectoryRpc('open_documents')
   },

@@ -28,6 +28,8 @@ const SIMPLE_BG_THRESHOLD_LOW_VARIANCE: f64 = 10.0;
 const SIMPLE_BG_THRESHOLD_HIGH_VARIANCE: f64 = 7.0;
 const SIMPLE_BG_CHANNEL_STD_SWITCH: f64 = 1.0;
 const ALPHA_RING_RADIUS: u8 = 7;
+const MAX_MODEL_CROP_AREA_RATIO: f64 = 0.20;
+const MAX_MODEL_CROP_PIXELS: u64 = 900_000;
 
 type Xyxy = [u32; 4];
 
@@ -96,6 +98,9 @@ impl Lama {
             self.inference_crop(&image.to_rgb8(), &binary_mask)?
         };
 
+        #[cfg(feature = "metal")]
+        fft::clear_fft_cache();
+
         if image.color().has_alpha() {
             let original_alpha = image.to_rgba8();
             let alpha = extract_alpha(&original_alpha);
@@ -152,6 +157,21 @@ impl Lama {
                 crop_image
             } else if let Some(filled) = try_fill_balloon(&crop_image, &crop_mask) {
                 filled
+            } else if should_skip_model_crop(crop_width, crop_height, im_w, im_h) {
+                tracing::warn!(
+                    block_x = block.x,
+                    block_y = block.y,
+                    block_width = block.width,
+                    block_height = block.height,
+                    crop_width,
+                    crop_height,
+                    image_width = im_w,
+                    image_height = im_h,
+                    text = ?block.text,
+                    "Skipping oversized LaMa crop to avoid Metal allocation failure"
+                );
+                clear_mask_bbox(&mut working_mask, xyxy);
+                continue;
             } else {
                 self.inference_model_rgb(&crop_image, &crop_mask)?
             };
@@ -529,6 +549,25 @@ fn clear_mask_bbox(mask: &mut GrayImage, bbox: Xyxy) {
 
 fn count_nonzero(mask: &GrayImage) -> u32 {
     mask.pixels().filter(|pixel| pixel.0[0] > 0).count() as u32
+}
+
+fn should_skip_model_crop(
+    crop_width: u32,
+    crop_height: u32,
+    image_width: u32,
+    image_height: u32,
+) -> bool {
+    let crop_pixels = u64::from(crop_width) * u64::from(crop_height);
+    if crop_pixels > MAX_MODEL_CROP_PIXELS {
+        return true;
+    }
+
+    let image_pixels = u64::from(image_width) * u64::from(image_height);
+    if image_pixels == 0 {
+        return false;
+    }
+
+    (crop_pixels as f64 / image_pixels as f64) > MAX_MODEL_CROP_AREA_RATIO
 }
 
 fn count_overlap(left: &GrayImage, right: &GrayImage) -> u32 {

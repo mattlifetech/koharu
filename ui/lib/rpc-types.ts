@@ -48,6 +48,8 @@ export type RpcMethodMap = {
   ]
   add_documents: [void, number]
   open_documents: [void, number]
+  native_add_documents: [{ folder: boolean }, number]
+  native_open_documents: [{ folder: boolean }, number]
   clear_documents: [void, void]
   save_documents: [void, void]
   export_document: [{ index: number }, void]

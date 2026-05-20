@@ -77,6 +77,15 @@ fn initialize(headless: bool, _debug: bool) -> Result<()> {
         crate::windows::auto_setup_cuda_path();
     }
 
+    let log_file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("/tmp/koharu.log")
+        .ok();
+    let writer = match log_file {
+        Some(f) => tracing_subscriber::fmt::writer::BoxMakeWriter::new(std::sync::Arc::new(f)),
+        None => tracing_subscriber::fmt::writer::BoxMakeWriter::new(std::io::stderr),
+    };
     tracing_subscriber::fmt()
         .with_span_events(FmtSpan::CLOSE)
         .with_env_filter(
@@ -84,6 +93,7 @@ fn initialize(headless: bool, _debug: bool) -> Result<()> {
                 .with_default_directive(tracing::Level::INFO.into())
                 .from_env_lossy(),
         )
+        .with_writer(writer)
         .init();
 
     // hook model cache dir

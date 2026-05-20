@@ -23,8 +23,43 @@ pub async fn update_doc(state: &AppState, index: usize, document: Document) -> R
 pub async fn drop_intermediates(state: &AppState, index: usize) -> Result<()> {
     mutate_doc(state, index, |doc| {
         doc.segment = None;
-        doc.inpainted = None;
         doc.brush_layer = None;
+        // Save inpainted to disk then free it from RAM
+        if let Some(inpainted) = doc.inpainted.take() {
+            match doc.inpainted_path() {
+                Some(path) => {
+                    tracing::info!("Saving inpainted to {:?}", path);
+                    if let Err(e) = inpainted.save_to_path(&path) {
+                        tracing::warn!("Failed to save inpainted image to {:?}: {e}", path);
+                    }
+                }
+                None => tracing::warn!("Could not derive inpainted path for doc {:?}", doc.path),
+            }
+        }
+        Ok(())
+    })
+    .await
+}
+
+/// Saves the rendered image for `index` to `{image_dir}/Rendered/{name}.webp` then
+/// clears it from the in-memory document to reduce RAM pressure during batch runs.
+pub async fn persist_rendered(state: &AppState, index: usize) -> Result<()> {
+    mutate_doc(state, index, |doc| {
+        if let Some(rendered) = doc.rendered.take() {
+            match doc.rendered_path() {
+                Some(path) => {
+                    tracing::info!("Saving rendered to {:?}", path);
+                    if let Err(e) = rendered.save_to_path(&path) {
+                        tracing::warn!("Failed to save rendered image to {:?}: {e}", path);
+                        doc.rendered = Some(rendered);
+                    }
+                }
+                None => {
+                    tracing::warn!("Could not derive rendered path for doc {:?}", doc.path);
+                    doc.rendered = Some(rendered);
+                }
+            }
+        }
         Ok(())
     })
     .await

@@ -107,6 +107,8 @@ async fn dispatch(method: Method, params: rmpv::Value, state: AppResources) -> R
         Method::ExportAllRendered => call0(operations::export_all_rendered, state).await,
         Method::AddDocuments => call(operations::add_documents, state, params).await,
         Method::OpenDocuments => call(operations::open_documents, state, params).await,
+        Method::NativeAddDocuments => call(operations::native_add_documents, state, params).await,
+        Method::NativeOpenDocuments => call(operations::native_open_documents, state, params).await,
         Method::OpenExternal => call(operations::open_external, state, params).await,
         Method::Detect => call(operations::detect, state, params).await,
         Method::Ocr => call(operations::ocr, state, params).await,

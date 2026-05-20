@@ -12,7 +12,7 @@ pub use commands::*;
 pub use effect::TextShaderEffect;
 pub use events::*;
 pub use font::{FontPrediction, NamedFontPrediction, TextDirection};
-pub use image::{get_cache_dir, set_cache_dir, SerializableDynamicImage};
+pub use image::{SerializableDynamicImage, get_cache_dir, set_cache_dir};
 pub use method::Method;
 
 use std::{path::PathBuf, sync::Arc};
@@ -39,6 +39,7 @@ pub struct TextBlock {
     pub translation: Option<String>,
     pub style: Option<TextStyle>,
     pub font_prediction: Option<FontPrediction>,
+    #[serde(skip)]
     pub rendered: Option<SerializableDynamicImage>,
     #[serde(skip)]
     pub lock_layout_box: bool,
@@ -146,7 +147,107 @@ pub struct Document {
     pub brush_layer: Option<SerializableDynamicImage>,
 }
 
+/// Subset of Document fields written to state.bin. Image data is excluded so
+/// startup doesn't load hundreds of MB of pixel data into RAM; images are
+/// reloaded from their original paths on load.
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistentDocument {
+    pub id: String,
+    pub path: PathBuf,
+    pub name: String,
+    pub width: u32,
+    pub height: u32,
+    pub text_blocks: Vec<TextBlock>,
+}
+
+impl From<&Document> for PersistentDocument {
+    fn from(doc: &Document) -> Self {
+        Self {
+            id: doc.id.clone(),
+            path: doc.path.clone(),
+            name: doc.name.clone(),
+            width: doc.width,
+            height: doc.height,
+            text_blocks: doc.text_blocks.clone(),
+        }
+    }
+}
+
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct PersistentState {
+    pub documents: Vec<PersistentDocument>,
+}
+
 impl Document {
+    fn output_base_dir(&self) -> Option<PathBuf> {
+        let parent = self.path.parent()?;
+        if parent.as_os_str().is_empty() {
+            // Source path is relative/bare filename — fall back to cache dir
+            get_cache_dir().map(|p| p.to_path_buf())
+        } else {
+            Some(parent.to_path_buf())
+        }
+    }
+
+    pub fn rendered_path(&self) -> Option<PathBuf> {
+        Some(
+            self.output_base_dir()?
+                .join("rendered")
+                .join(format!("{}.webp", self.name)),
+        )
+    }
+
+    pub fn inpainted_path(&self) -> Option<PathBuf> {
+        Some(
+            self.output_base_dir()?
+                .join("inpainted")
+                .join(format!("{}.webp", self.name)),
+        )
+    }
+
+    fn legacy_rendered_path(&self) -> Option<PathBuf> {
+        Some(
+            self.output_base_dir()?
+                .join("Rendered")
+                .join(format!("{}.webp", self.name)),
+        )
+    }
+
+    fn legacy_inpainted_path(&self) -> Option<PathBuf> {
+        Some(
+            self.output_base_dir()?
+                .join("Inpainted")
+                .join(format!("{}.webp", self.name)),
+        )
+    }
+
+    /// Returns the rendered image from memory if present, otherwise loads it from disk.
+    pub fn load_rendered(&self) -> Option<SerializableDynamicImage> {
+        if let Some(ref r) = self.rendered {
+            return Some(r.clone());
+        }
+        self.rendered_path()
+            .and_then(|path| SerializableDynamicImage::load_from_path(&path).ok())
+            .or_else(|| {
+                self.legacy_rendered_path()
+                    .and_then(|path| SerializableDynamicImage::load_from_path(&path).ok())
+            })
+    }
+
+    /// Returns the inpainted image from memory if present, otherwise loads it from disk.
+    pub fn load_inpainted(&self) -> Option<SerializableDynamicImage> {
+        if let Some(ref r) = self.inpainted {
+            return Some(r.clone());
+        }
+        self.inpainted_path()
+            .and_then(|path| SerializableDynamicImage::load_from_path(&path).ok())
+            .or_else(|| {
+                self.legacy_inpainted_path()
+                    .and_then(|path| SerializableDynamicImage::load_from_path(&path).ok())
+            })
+    }
+
     pub fn open(path: PathBuf) -> anyhow::Result<Self> {
         let bytes = std::fs::read(&path)?;
 
@@ -173,8 +274,6 @@ impl Document {
             .to_string();
 
         let serializable_img = SerializableDynamicImage(Arc::new(img));
-        // Try to save to cache if cache dir is set
-        let _ = serializable_img.save_to_cache();
 
         Ok(Document {
             id,
@@ -195,15 +294,32 @@ pub struct State {
 
 impl State {
     pub fn save(&self, path: impl AsRef<std::path::Path>) -> anyhow::Result<()> {
-        let bytes = postcard::to_stdvec(self)?;
+        let persistent = PersistentState {
+            documents: self
+                .documents
+                .iter()
+                .map(PersistentDocument::from)
+                .collect(),
+        };
+        let bytes = postcard::to_stdvec(&persistent)?;
         std::fs::write(path, bytes)?;
         Ok(())
     }
 
     pub fn load(path: impl AsRef<std::path::Path>) -> anyhow::Result<Self> {
         let bytes = std::fs::read(path)?;
-        let state: Self = postcard::from_bytes(&bytes)?;
-        Ok(state)
+        let persistent: PersistentState = postcard::from_bytes(&bytes)?;
+        let documents: Vec<Document> = persistent
+            .documents
+            .into_iter()
+            .filter_map(|p| {
+                Document::open(p.path.clone()).ok().map(|loaded| Document {
+                    text_blocks: p.text_blocks,
+                    ..loaded
+                })
+            })
+            .collect();
+        Ok(Self { documents })
     }
 }
 

@@ -90,11 +90,55 @@ pub async fn run_pipeline(
     *guard = None;
 }
 
+async fn ensure_llm_loaded(
+    res: &AppResources,
+    req: &ProcessRequest,
+    cancel: &Arc<AtomicBool>,
+) -> anyhow::Result<()> {
+    let Some(model_id) = &req.llm_model_id else {
+        return Ok(());
+    };
+    if res.llm.ready().await {
+        return Ok(());
+    }
+    if model_id.contains(':') {
+        let api_key = req
+            .llm_api_key
+            .clone()
+            .ok_or_else(|| anyhow::anyhow!("llm_api_key is required for API models"))?;
+        let (provider_id, model_part) = model_id.split_once(':').unwrap();
+        res.llm.load_api(provider_id, model_part, api_key).await?;
+    } else {
+        let id = ModelId::from_str(model_id)?;
+        res.llm.load(id).await;
+        for _ in 0..300 {
+            if res.llm.ready().await {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            if cancel.load(Ordering::Relaxed) {
+                return Ok(());
+            }
+        }
+        if !res.llm.ready().await {
+            anyhow::bail!("LLM failed to load within timeout");
+        }
+    }
+    Ok(())
+}
+
 async fn run_pipeline_inner(
     res: &AppResources,
     req: &ProcessRequest,
     cancel: &Arc<AtomicBool>,
 ) -> anyhow::Result<()> {
+    // Prevent the Mac from sleeping or locking the display during processing.
+    // `caffeinate -i` asserts PreventUserIdleSystemSleep for its lifetime.
+    let _caffeinate = std::process::Command::new("caffeinate")
+        .arg("-i")
+        .spawn()
+        .ok();
+
     let total_docs = {
         let guard = res.state.read().await;
         let len = guard.documents.len();
@@ -109,33 +153,7 @@ async fn run_pipeline_inner(
         return Ok(());
     }
 
-    if let Some(model_id) = &req.llm_model_id
-        && !res.llm.ready().await
-    {
-        if model_id.contains(':') {
-            let api_key = req
-                .llm_api_key
-                .clone()
-                .ok_or_else(|| anyhow::anyhow!("llm_api_key is required for API models"))?;
-            let (provider_id, model_part) = model_id.split_once(':').unwrap();
-            res.llm.load_api(provider_id, model_part, api_key).await?;
-        } else {
-            let id = ModelId::from_str(model_id)?;
-            res.llm.load(id).await;
-            for _ in 0..300 {
-                if res.llm.ready().await {
-                    break;
-                }
-                tokio::time::sleep(Duration::from_millis(100)).await;
-                if cancel.load(Ordering::Relaxed) {
-                    return Ok(());
-                }
-            }
-            if !res.llm.ready().await {
-                anyhow::bail!("LLM failed to load within timeout");
-            }
-        }
-    }
+    ensure_llm_loaded(res, req, cancel).await?;
 
     let start_index = req.index.unwrap_or(0);
     let end_index = req.index.map(|i| i + 1).unwrap_or(total_docs);
@@ -188,12 +206,14 @@ async fn run_pipeline_inner(
 
         if !cancel.load(Ordering::Relaxed) {
             state_tx::drop_intermediates(&res.state, doc_index).await?;
+            state_tx::persist_rendered(&res.state, doc_index).await?;
         }
-
-        // Save state after each document is processed
-        let guard = res.state.read().await;
-        let _ = guard.save(&res.state_path);
     }
+
+    // Save once after all documents are processed to avoid serializing the full
+    // image set after every document (O(N²) memory writes in a large batch).
+    let guard = res.state.read().await;
+    let _ = guard.save(&res.state_path);
 
     Ok(())
 }

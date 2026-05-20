@@ -4,7 +4,11 @@ use candle_core::{
     bail,
     metal_backend::{DeviceId, MetalError, MetalStorage},
 };
-use objc2::{AnyThread, rc::Retained, runtime::ProtocolObject};
+use objc2::{
+    AnyThread,
+    rc::{Retained, autoreleasepool},
+    runtime::ProtocolObject,
+};
 use objc2_foundation::{NSArray, NSCopying, NSDictionary, NSNumber};
 use objc2_metal_performance_shaders::MPSDataType;
 use objc2_metal_performance_shaders_graph::{
@@ -206,38 +210,42 @@ pub fn rfft2(storage: &MetalStorage, layout: &Layout) -> Result<(MetalStorage, S
     let output_elems = batch * channels * height * w_half * 2;
     let output_buffer = device.new_buffer(output_elems, candle_core::DType::F32, "rfft2-mps")?;
 
-    let input_td = unsafe {
-        MPSGraphTensorData::initWithMTLBuffer_shape_dataType(
-            MPSGraphTensorData::alloc(),
-            storage.buffer().as_ref(),
-            plan.input_shape.as_ref(),
-            MPSDataType::Float32,
-        )
-    };
-    let output_td = unsafe {
-        MPSGraphTensorData::initWithMTLBuffer_shape_dataType(
-            MPSGraphTensorData::alloc(),
-            output_buffer.as_ref().as_ref(),
-            plan.output_shape.as_ref(),
-            MPSDataType::ComplexFloat32,
-        )
-    };
+    autoreleasepool(|_| -> Result<()> {
+        let input_td = unsafe {
+            MPSGraphTensorData::initWithMTLBuffer_shape_dataType(
+                MPSGraphTensorData::alloc(),
+                storage.buffer().as_ref(),
+                plan.input_shape.as_ref(),
+                MPSDataType::Float32,
+            )
+        };
+        let output_td = unsafe {
+            MPSGraphTensorData::initWithMTLBuffer_shape_dataType(
+                MPSGraphTensorData::alloc(),
+                output_buffer.as_ref().as_ref(),
+                plan.output_shape.as_ref(),
+                MPSDataType::ComplexFloat32,
+            )
+        };
 
-    let feeds: Retained<MPSGraphTensorDataDictionary> =
-        single_entry_dictionary(plan.placeholder.as_ref(), input_td.as_ref());
-    let results: Retained<MPSGraphTensorDataDictionary> =
-        single_entry_dictionary(plan.target.as_ref(), output_td.as_ref());
+        let feeds: Retained<MPSGraphTensorDataDictionary> =
+            single_entry_dictionary(plan.placeholder.as_ref(), input_td.as_ref());
+        let results: Retained<MPSGraphTensorDataDictionary> =
+            single_entry_dictionary(plan.target.as_ref(), output_td.as_ref());
 
-    let command_queue = shared_command_queue(&device)?;
-    unsafe {
-        plan.graph
-            .runWithMTLCommandQueue_feeds_targetOperations_resultsDictionary(
-                command_queue.as_ref(),
-                feeds.as_ref(),
-                None,
-                results.as_ref(),
-            );
-    }
+        let command_queue = shared_command_queue(&device)?;
+        unsafe {
+            plan.graph
+                .runWithMTLCommandQueue_feeds_targetOperations_resultsDictionary(
+                    command_queue.as_ref(),
+                    feeds.as_ref(),
+                    None,
+                    results.as_ref(),
+                );
+        }
+        device.wait_until_completed()?;
+        Ok(())
+    })?;
 
     let shape = Shape::from(vec![batch, channels, height, w_half, 2]);
     Ok((
@@ -286,42 +294,52 @@ pub fn irfft2(
     let output_elems = batch * channels * height * width;
     let output_buffer = device.new_buffer(output_elems, candle_core::DType::F32, "irfft2-mps")?;
 
-    let input_td = unsafe {
-        MPSGraphTensorData::initWithMTLBuffer_shape_dataType(
-            MPSGraphTensorData::alloc(),
-            storage.buffer().as_ref(),
-            plan.input_shape.as_ref(),
-            MPSDataType::ComplexFloat32,
-        )
-    };
-    let output_td = unsafe {
-        MPSGraphTensorData::initWithMTLBuffer_shape_dataType(
-            MPSGraphTensorData::alloc(),
-            output_buffer.as_ref().as_ref(),
-            plan.output_shape.as_ref(),
-            MPSDataType::Float32,
-        )
-    };
+    autoreleasepool(|_| -> Result<()> {
+        let input_td = unsafe {
+            MPSGraphTensorData::initWithMTLBuffer_shape_dataType(
+                MPSGraphTensorData::alloc(),
+                storage.buffer().as_ref(),
+                plan.input_shape.as_ref(),
+                MPSDataType::ComplexFloat32,
+            )
+        };
+        let output_td = unsafe {
+            MPSGraphTensorData::initWithMTLBuffer_shape_dataType(
+                MPSGraphTensorData::alloc(),
+                output_buffer.as_ref().as_ref(),
+                plan.output_shape.as_ref(),
+                MPSDataType::Float32,
+            )
+        };
 
-    let feeds: Retained<MPSGraphTensorDataDictionary> =
-        single_entry_dictionary(plan.placeholder.as_ref(), input_td.as_ref());
-    let results: Retained<MPSGraphTensorDataDictionary> =
-        single_entry_dictionary(plan.target.as_ref(), output_td.as_ref());
+        let feeds: Retained<MPSGraphTensorDataDictionary> =
+            single_entry_dictionary(plan.placeholder.as_ref(), input_td.as_ref());
+        let results: Retained<MPSGraphTensorDataDictionary> =
+            single_entry_dictionary(plan.target.as_ref(), output_td.as_ref());
 
-    let command_queue = shared_command_queue(&device)?;
-    unsafe {
-        plan.graph
-            .runWithMTLCommandQueue_feeds_targetOperations_resultsDictionary(
-                command_queue.as_ref(),
-                feeds.as_ref(),
-                None,
-                results.as_ref(),
-            );
-    }
+        let command_queue = shared_command_queue(&device)?;
+        unsafe {
+            plan.graph
+                .runWithMTLCommandQueue_feeds_targetOperations_resultsDictionary(
+                    command_queue.as_ref(),
+                    feeds.as_ref(),
+                    None,
+                    results.as_ref(),
+                );
+        }
+        device.wait_until_completed()?;
+        Ok(())
+    })?;
 
     let shape = Shape::from(vec![batch, channels, height, width]);
     Ok((
         MetalStorage::new(output_buffer, device, output_elems, candle_core::DType::F32),
         shape,
     ))
+}
+
+/// Drops all cached FFT plans (MPSGraph instances) from the thread-local cache.
+/// Call after each image's inpainting to prevent Metal memory accumulation.
+pub fn clear_fft_cache() {
+    FFT_PLANS.with(|plans| plans.borrow_mut().clear());
 }

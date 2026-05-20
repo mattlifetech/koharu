@@ -47,6 +47,12 @@ pub struct OpenDocumentsPayload {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct NativeOpenDocumentsPayload {
+    pub folder: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FileResult {
     pub filename: String,
     #[serde(with = "serde_bytes")]
@@ -343,6 +349,7 @@ mod tests {
                 data: vec![7, 8, 9],
             }],
         });
+        round_trip(&NativeOpenDocumentsPayload { folder: false });
         round_trip(&FileResult {
             filename: "page_koharu.png".to_string(),
             data: vec![1, 2, 3, 4],

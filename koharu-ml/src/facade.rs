@@ -13,6 +13,8 @@ const NEAR_WHITE_THRESHOLD: u8 = 12;
 const GRAY_NEAR_WHITE_THRESHOLD: u8 = 60;
 const GRAY_TOLERANCE: u8 = 10;
 const SIMILAR_COLOR_MAX_DIFF: u8 = 16;
+const MAX_SHORT_TEXT_BLOCK_AREA_RATIO: f32 = 0.15;
+const MAX_SHORT_TEXT_BLOCK_CHARS: usize = 2;
 
 fn clamp_near_black(color: [u8; 3]) -> [u8; 3] {
     let max_channel = *color.iter().max().unwrap_or(&0);
@@ -65,6 +67,35 @@ fn normalize_font_prediction(prediction: &mut FontPrediction) {
         prediction.stroke_width_px = 0.0;
         prediction.stroke_color = prediction.text_color;
     }
+}
+
+fn remove_large_short_text_false_positives(doc: &mut Document) {
+    let image_area = (doc.width as f32 * doc.height as f32).max(1.0);
+    doc.text_blocks.retain(|block| {
+        let text_len = block
+            .text
+            .as_deref()
+            .unwrap_or_default()
+            .chars()
+            .filter(|ch| !ch.is_whitespace())
+            .count();
+        let area_ratio = (block.width.max(0.0) * block.height.max(0.0)) / image_area;
+        let keep = !(area_ratio >= MAX_SHORT_TEXT_BLOCK_AREA_RATIO
+            && text_len <= MAX_SHORT_TEXT_BLOCK_CHARS);
+        if !keep {
+            tracing::warn!(
+                name = %doc.name,
+                x = block.x,
+                y = block.y,
+                width = block.width,
+                height = block.height,
+                text = ?block.text,
+                area_ratio,
+                "Dropping implausibly large short OCR block before inpaint"
+            );
+        }
+        keep
+    });
 }
 
 pub struct Model {
@@ -131,6 +162,7 @@ impl Model {
                 block.text = Some(prediction.text);
             }
         }
+        remove_large_short_text_false_positives(doc);
 
         Ok(())
     }

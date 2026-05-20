@@ -71,6 +71,11 @@ pub fn rfft2(xs: &Tensor) -> candle_core::Result<Tensor> {
     xs.apply_op1_no_bwd(&op)
 }
 
+#[cfg(feature = "metal")]
+pub fn clear_fft_cache() {
+    metal::clear_fft_cache();
+}
+
 pub fn irfft2(spectrum: &Tensor, width: usize) -> candle_core::Result<Tensor> {
     let spectrum = spectrum.contiguous()?;
     let dims = spectrum.dims();

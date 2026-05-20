@@ -20,6 +20,15 @@ pub enum Model {
 }
 
 impl Model {
+    fn clear_kv_cache(&mut self) {
+        match self {
+            Model::Llama(m) => m.clear_kv_cache(),
+            Model::Qwen2(m) => m.clear_kv_cache(),
+            Model::Lfm2(m) => m.clear_kv_cache(),
+            Model::HunyuanDense(m) => m.clear_kv_cache(),
+        }
+    }
+
     fn forward(&mut self, input: &Tensor, pos: usize) -> candle_core::Result<Tensor> {
         match self {
             Model::Llama(m) => m.forward(input, pos),
@@ -148,6 +157,8 @@ impl Llm {
         opts: &GenerateOptions,
         target_language: Option<&str>,
     ) -> Result<String> {
+        self.model.clear_kv_cache();
+
         let prompt = self
             .prompt_renderer
             .format_chat_prompt(prompt.to_string(), target_language)?;
