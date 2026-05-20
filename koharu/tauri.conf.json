@@ -50,7 +50,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVGNjJGMTlEODk0MjkwMjMKUldRamtFS0puZkZpN3hWZ1BVSkoyUEd1N1RvV09DL01XK2FmcEZOM1R4eGh5cDZ6dEVrTzJNSW4K",
       "endpoints": [
-        "https://github.com/mayocream/koharu/releases/latest/download/latest.json"
+        "https://github.com/mattlifetech/koharu/releases/latest/download/latest.json"
       ]
     }
   }

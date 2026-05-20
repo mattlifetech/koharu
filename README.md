@@ -175,7 +175,7 @@ LLMs will be automatically downloaded on demand when you select a model in the s
 
 ## Installation
 
-You can download the latest release of Koharu from the [releases page](https://github.com/mayocream/koharu/releases/latest).
+You can download this fork's latest macOS preview release from the [releases page](https://github.com/mattlifetech/koharu/releases/latest).
 
 We provide pre-built binaries for Windows, macOS, and Linux. For other platforms, you may need to build from source, see the [Development](#development) section below.
 
