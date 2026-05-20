@@ -515,9 +515,11 @@ pub async fn inpaint_partial(
         return Ok(());
     }
 
-    let image_crop =
-        DynamicImage::from(snapshot.image.crop_imm(x0, y0, crop_width, crop_height)).into();
-    let mask_crop = DynamicImage::from(mask_image.crop_imm(x0, y0, crop_width, crop_height)).into();
+    let image_crop = snapshot
+        .image
+        .crop_imm(x0, y0, crop_width, crop_height)
+        .into();
+    let mask_crop = mask_image.crop_imm(x0, y0, crop_width, crop_height).into();
 
     let inpainted_crop = state
         .ml

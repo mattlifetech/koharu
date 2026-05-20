@@ -38,32 +38,30 @@ fn supported_image_path(path: &Path) -> bool {
 }
 
 async fn pick_native_document_paths(folder: bool) -> anyhow::Result<Vec<PathBuf>> {
-    Ok(
-        tokio::task::spawn_blocking(move || -> anyhow::Result<Vec<PathBuf>> {
-            if folder {
-                let Some(dir) = FileDialog::new().pick_folder() else {
-                    return Ok(Vec::new());
-                };
-                let mut paths = std::fs::read_dir(dir)?
-                    .filter_map(|entry| entry.ok().map(|entry| entry.path()))
-                    .filter(|path| path.is_file() && supported_image_path(path))
-                    .collect::<Vec<_>>();
-                paths.sort_by(|a, b| {
-                    natord::compare(
-                        &a.file_name().unwrap_or_default().to_string_lossy(),
-                        &b.file_name().unwrap_or_default().to_string_lossy(),
-                    )
-                });
-                Ok(paths)
-            } else {
-                Ok(FileDialog::new()
-                    .add_filter("Images", &["png", "jpg", "jpeg", "webp"])
-                    .pick_files()
-                    .unwrap_or_default())
-            }
-        })
-        .await??,
-    )
+    tokio::task::spawn_blocking(move || -> anyhow::Result<Vec<PathBuf>> {
+        if folder {
+            let Some(dir) = FileDialog::new().pick_folder() else {
+                return Ok(Vec::new());
+            };
+            let mut paths = std::fs::read_dir(dir)?
+                .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+                .filter(|path| path.is_file() && supported_image_path(path))
+                .collect::<Vec<_>>();
+            paths.sort_by(|a, b| {
+                natord::compare(
+                    &a.file_name().unwrap_or_default().to_string_lossy(),
+                    &b.file_name().unwrap_or_default().to_string_lossy(),
+                )
+            });
+            Ok(paths)
+        } else {
+            Ok(FileDialog::new()
+                .add_filter("Images", &["png", "jpg", "jpeg", "webp"])
+                .pick_files()
+                .unwrap_or_default())
+        }
+    })
+    .await?
 }
 
 fn load_documents_from_paths(paths: Vec<PathBuf>) -> anyhow::Result<Vec<koharu_types::Document>> {
