@@ -2,74 +2,31 @@ name: Build
 
 on:
   push:
-    branches: ['openclaw-mcp']
+    branches: ['main']
   pull_request:
   workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
-  CUDA_COMPUTE_CAP: 75
 
 jobs:
-  build:
-    name: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
+  build-macos:
+    name: macOS Apple Silicon
+    runs-on: macos-latest
     steps:
-      - name: Install dependencies
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt update
-          sudo apt install libwebkit2gtk-4.1-dev \
-            build-essential \
-            curl \
-            wget \
-            file \
-            libxdo-dev \
-            libssl-dev \
-            libayatana-appindicator3-dev \
-            librsvg2-dev
       - uses: actions/checkout@v6
       - uses: oven-sh/setup-bun@v2
       - uses: Swatinem/rust-cache@v2
-      - uses: Jimver/cuda-toolkit@master
-        if: matrix.os != 'macos-latest'
-        with:
-          cuda: '13.1.0'
-      - uses: ilammy/msvc-dev-cmd@v1
-        if: matrix.os == 'windows-latest'
       - run: bun install
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          args: ${{ matrix.os == 'macos-latest' && '--target aarch64-apple-darwin' || '' }}
+          args: --target aarch64-apple-darwin
 
       - name: Upload Artifact (macOS)
-        if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
           name: koharu-macos-dmg
           path: target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
-          retention-days: 7
-
-      - name: Upload Artifact (Windows)
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: koharu-windows-exe
-          path: target/release/bundle/nsis/*.exe
-          retention-days: 7
-
-      - name: Upload Artifact (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: koharu-linux-deb
-          path: target/release/bundle/deb/*.deb
           retention-days: 7
