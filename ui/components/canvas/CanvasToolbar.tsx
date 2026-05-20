@@ -235,7 +235,7 @@ function LlmStatusPopover() {
           data-llm-loading={llmLoading ? 'true' : 'false'}
           className={`flex h-6 cursor-pointer items-center gap-1.5 rounded-full px-2.5 text-[11px] font-medium shadow-sm transition hover:opacity-80 ${
             llmReady
-              ? 'bg-rose-400 text-white ring-1 ring-rose-400/30'
+              ? 'bg-primary text-primary-foreground ring-primary/30 ring-1'
               : 'bg-muted text-muted-foreground ring-border/50 ring-1'
           }`}
         >

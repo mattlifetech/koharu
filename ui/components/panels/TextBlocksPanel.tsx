@@ -162,7 +162,7 @@ function BlockCard({
             <span
               className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-medium uppercase ${
                 hasOcr
-                  ? 'bg-rose-400/80 text-white'
+                  ? 'bg-primary/80 text-white'
                   : 'bg-muted text-muted-foreground/50'
               }`}
             >
@@ -171,7 +171,7 @@ function BlockCard({
             <span
               className={`shrink-0 rounded px-1 py-0.5 text-[9px] font-medium uppercase ${
                 hasTranslation
-                  ? 'bg-rose-400/80 text-white'
+                  ? 'bg-primary/80 text-white'
                   : 'bg-muted text-muted-foreground/50'
               }`}
             >

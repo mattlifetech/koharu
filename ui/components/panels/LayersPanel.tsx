@@ -196,7 +196,7 @@ function LayerItem({ layer }: { layer: Layer }) {
       <div
         className={cn(
           'size-1.5 shrink-0 rounded-full',
-          layer.hasContent ? 'bg-rose-500' : 'bg-muted-foreground/20',
+          layer.hasContent ? 'bg-primary' : 'bg-muted-foreground/20',
         )}
       />
     </motion.div>

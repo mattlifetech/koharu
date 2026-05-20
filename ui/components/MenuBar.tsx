@@ -6,7 +6,6 @@ import { MinusIcon, SquareIcon, XIcon, CopyIcon } from 'lucide-react'
 import { isTauri, isMacOS, windowControls } from '@/lib/backend'
 import { useTranslation } from 'react-i18next'
 import { fitCanvasToViewport, resetCanvasScale } from '@/components/Canvas'
-import Image from 'next/image'
 import {
   Menubar,
   MenubarContent,
@@ -144,19 +143,8 @@ export function MenuBar() {
         {/* macOS traffic lights */}
         {isNativeMacOS && <MacOSControls />}
 
-        {/* Logo */}
-        <div className='flex h-full items-center pl-2 select-none'>
-          <Image
-            src='/icon.png'
-            alt='Manga Offline Translate'
-            width={18}
-            height={18}
-            draggable={false}
-          />
-        </div>
-
         {/* Menu items */}
-        <Menubar className='h-auto gap-1 border-none bg-transparent p-0 px-1.5 shadow-none'>
+        <Menubar className='h-auto gap-1 border-none bg-transparent p-0 px-2 shadow-none'>
           <MenubarMenu>
             <MenubarTrigger
               data-testid='menu-file-trigger'
