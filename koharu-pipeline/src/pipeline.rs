@@ -6,6 +6,7 @@ use std::sync::{
 use std::time::Duration;
 
 use koharu_ml::llm::ModelId;
+use koharu_types::Document;
 use koharu_types::commands::ProcessRequest;
 use koharu_types::events::{PipelineProgress, PipelineStatus, PipelineStep};
 use once_cell::sync::Lazy;
@@ -35,6 +36,19 @@ fn compute_percent(doc: usize, step: usize, total_docs: usize, total_steps: usiz
         return 0;
     }
     ((done_units as f64 / total_units as f64) * 100.0).round() as u8
+}
+
+fn mark_no_text_passthrough(doc: &mut Document) {
+    if !doc.text_blocks.is_empty() {
+        return;
+    }
+
+    if doc.inpainted.is_none() {
+        doc.inpainted = Some(doc.image.clone());
+    }
+    if doc.rendered.is_none() {
+        doc.rendered = Some(doc.image.clone());
+    }
 }
 
 pub async fn run_pipeline(
@@ -181,14 +195,42 @@ async fn run_pipeline_inner(
 
             let mut snapshot = state_tx::read_doc(&res.state, doc_index).await?;
 
-            match step {
-                PipelineStep::Detect => res.ml.detect(&mut snapshot).await?,
-                PipelineStep::Ocr => res.ml.ocr(&mut snapshot).await?,
-                PipelineStep::Inpaint => res.ml.inpaint(&mut snapshot).await?,
+            let should_skip_document = match step {
+                PipelineStep::Detect => {
+                    res.ml.detect(&mut snapshot).await?;
+                    if snapshot.text_blocks.is_empty() {
+                        tracing::info!(
+                            name = %snapshot.name,
+                            "No text blocks detected; saving original image and continuing"
+                        );
+                        mark_no_text_passthrough(&mut snapshot);
+                        true
+                    } else {
+                        false
+                    }
+                }
+                PipelineStep::Ocr => {
+                    res.ml.ocr(&mut snapshot).await?;
+                    if snapshot.text_blocks.is_empty() {
+                        tracing::info!(
+                            name = %snapshot.name,
+                            "No text blocks remained after OCR cleanup; saving original image and continuing"
+                        );
+                        mark_no_text_passthrough(&mut snapshot);
+                        true
+                    } else {
+                        false
+                    }
+                }
+                PipelineStep::Inpaint => {
+                    res.ml.inpaint(&mut snapshot).await?;
+                    false
+                }
                 PipelineStep::LlmGenerate => {
                     res.llm
                         .translate(&mut snapshot, req.language.as_deref())
                         .await?;
+                    false
                 }
                 PipelineStep::Render => {
                     res.renderer.render(
@@ -198,10 +240,14 @@ async fn run_pipeline_inner(
                         req.shader_stroke.clone(),
                         req.font_family.as_deref(),
                     )?;
+                    false
                 }
-            }
+            };
 
             state_tx::update_doc(&res.state, doc_index, snapshot).await?;
+            if should_skip_document {
+                break;
+            }
         }
 
         if !cancel.load(Ordering::Relaxed) {
@@ -220,7 +266,9 @@ async fn run_pipeline_inner(
 
 #[cfg(test)]
 mod tests {
-    use super::compute_percent;
+    use koharu_types::{Document, TextBlock};
+
+    use super::{compute_percent, mark_no_text_passthrough};
 
     #[test]
     fn compute_percent_handles_zero_units() {
@@ -238,5 +286,28 @@ mod tests {
         assert!(first < middle);
         assert!(middle < last);
         assert_eq!(last, 90);
+    }
+
+    #[test]
+    fn no_text_passthrough_sets_output_images() {
+        let mut doc = Document::default();
+
+        mark_no_text_passthrough(&mut doc);
+
+        assert!(doc.inpainted.is_some());
+        assert!(doc.rendered.is_some());
+    }
+
+    #[test]
+    fn no_text_passthrough_keeps_text_documents_unchanged() {
+        let mut doc = Document {
+            text_blocks: vec![TextBlock::default()],
+            ..Default::default()
+        };
+
+        mark_no_text_passthrough(&mut doc);
+
+        assert!(doc.inpainted.is_none());
+        assert!(doc.rendered.is_none());
     }
 }
